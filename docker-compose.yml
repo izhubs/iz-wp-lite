@@ -1,0 +1,13 @@
+version: '3.8'
+# Root-level docker-compose.yml for Coolify and other PaaS platforms.
+# This file delegates to docker/docker-compose.yml which is the canonical config.
+# Coolify deployment: point "Docker Compose File" to this file in project settings.
+#
+# DECISION: Separate root compose vs single compose / WHY: Coolify and most PaaS
+# expect compose file at repo root. Keeping docker/ as canonical allows local dev
+# to use: docker compose -f docker/docker-compose.yml up -d
+# TRADE-OFF: Two files to maintain — they share the same build context so drift
+# is limited to the extends/include relationship only.
+
+include:
+  - path: docker/docker-compose.yml
