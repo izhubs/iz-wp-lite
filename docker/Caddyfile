@@ -26,14 +26,26 @@
 	}
 	rewrite @wp_content /app/{re.wpcontent.1}
 
+	# Serve static files from document root
+	file_server
+
+	# Tier 2: Static Page Cache (Check for pre-rendered HTML cache before passing to PHP)
+	# Compatible with Cache Enabler / WP Super Cache file structures
+	@cached_page {
+		not method POST
+		not path_regexp ^/(wp-admin|wp-login\.php)
+		not header Cookie "*wordpress_logged_in*"
+		file {
+			try_files /app/cache/page_cache/{uri}/index.html /app/cache/cache-enabler/{host}{uri}/index.html
+		}
+	}
+	rewrite @cached_page {http.matchers.file.relative}
+
 	# Forward PHP requests to PHP-FPM on port 9000
 	php_fastcgi 127.0.0.1:9000 {
 		index index.php
 		env SERVER_PORT 8080
 	}
-
-	# Serve static files from document root
-	file_server
 
 	# Cache headers for static assets
 	@static {
