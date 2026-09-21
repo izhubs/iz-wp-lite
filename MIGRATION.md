@@ -195,3 +195,117 @@ docker exec -it iz-wp-lite-app wp --allow-root search-replace \
 iz-wp-lite never modifies your original server. To roll back, simply point DNS back to the old server.
 
 Your old site remains unchanged throughout this migration.
+
+---
+
+## Migrating out — iz-wp-lite → standard WordPress
+
+If you need to move back to a standard WordPress installation (shared hosting, cPanel, managed WordPress), the process is straightforward. iz-wp-lite uses standard WordPress data formats — nothing is proprietary.
+
+### What you are moving
+
+| Data | Location in iz-wp-lite | Destination |
+|---|---|---|
+| Database | MariaDB container (`iz_wp_mariadb_data` volume) | New host's MySQL/MariaDB |
+| Media files | `web/app/uploads/` | `wp-content/uploads/` |
+| Plugins | Listed in `composer.json` | Install via WordPress dashboard |
+| Themes | `web/app/themes/` | `wp-content/themes/` |
+| Configuration | `.env` | `wp-config.php` |
+
+### Step 1: Export the database
+
+```bash
+docker compose -f docker/docker-compose.yml exec -T mariadb \
+  mariadb-dump \
+  -u"${DB_USER:-wp_user}" \
+  -p"${DB_PASSWORD:-wp_secure_password}" \
+  "${DB_NAME:-wp_lite}" \
+  > export.sql
+```
+
+### Step 2: Export media uploads
+
+```bash
+# Copy uploads out of the Docker volume to your local machine
+docker cp iz-wp-lite-app:/var/www/html/web/app/uploads ./uploads-export
+```
+
+Or from the VPS directly:
+```bash
+rsync -avz deploy@<vps-ip>:/home/deploy/my-site/web/app/uploads/ ./uploads-export/
+```
+
+### Step 3: Export themes (if custom)
+
+```bash
+docker cp iz-wp-lite-app:/var/www/html/web/app/themes ./themes-export
+```
+
+### Step 4: Install standard WordPress on destination
+
+Use your hosting provider's WordPress installer (cPanel Softaculous, WP Engine, etc.) or download from [wordpress.org](https://wordpress.org/download/).
+
+### Step 5: Import the database
+
+In cPanel → phpMyAdmin, or via WP-CLI on the destination:
+
+```bash
+# If the destination has WP-CLI
+wp db import export.sql
+```
+
+Or import through phpMyAdmin: drop all tables in the new database, then import `export.sql`.
+
+### Step 6: Search-replace the domain
+
+Bedrock stores the site URL in the database using the same format as standard WordPress. After import, update the domain:
+
+```bash
+wp search-replace 'https://old-domain.com' 'https://new-domain.com' --all-tables
+```
+
+### Step 7: Copy uploads
+
+Copy the contents of `uploads-export/` into `wp-content/uploads/` on the destination server.
+
+### Step 8: Reconstruct wp-config.php
+
+The destination `wp-config.php` needs the same database credentials and salts that were in your iz-wp-lite `.env`. Copy the values from `.env`:
+
+```php
+define( 'DB_NAME',     'your_db_name' );
+define( 'DB_USER',     'your_db_user' );
+define( 'DB_PASSWORD', 'your_db_password' );
+define( 'DB_HOST',     'localhost' );
+
+define( 'AUTH_KEY',         'value from .env AUTH_KEY' );
+define( 'SECURE_AUTH_KEY',  'value from .env SECURE_AUTH_KEY' );
+// ... (all 8 salts)
+```
+
+### Step 9: Reinstall plugins
+
+iz-wp-lite manages plugins via Composer. Check `composer.json` under `require` and `suggest` to find the plugin list. Install each plugin on the destination via the WordPress dashboard or WP-CLI:
+
+```bash
+wp plugin install contact-form-7 seo-by-rank-math akismet --activate
+```
+
+### Step 10: Re-enable dashboard plugin management
+
+On iz-wp-lite, `DISALLOW_FILE_MODS=true` prevents dashboard installs. Standard WordPress does not set this. No action required — the destination site allows dashboard management by default.
+
+---
+
+### What does NOT transfer
+
+| Feature | iz-wp-lite | Standard WordPress |
+|---|---|---|
+| Automatic SSL | Caddy auto-cert | Needs manual Certbot or hosting SSL |
+| Git-based deploys | Native | Needs plugin or CI/CD setup |
+| Security hardening mu-plugins | Auto-loaded | Must replicate manually or use Wordfence |
+| `.env` secret isolation | Built-in | `wp-config.php` in web root by default |
+| MariaDB micro-config | `mariadb-lowram.cnf` | Not applicable on shared hosting |
+
+These are architectural differences, not data. Your WordPress content (posts, pages, media, users) migrates 100% intact.
+
