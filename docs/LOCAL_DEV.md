@@ -1,10 +1,10 @@
-# Local Development Setup
+# Local Development
 
-**Prerequisites:** Git, Docker Desktop (Mac/Windows) hoặc Docker Engine (Linux)
+**Prerequisites:** Git, Docker Desktop (macOS/Windows) or Docker Engine (Linux)
 
 ---
 
-## Quick start (SQLite mode — fastest, zero config)
+## Quick start — SQLite mode (fastest, zero config)
 
 ```bash
 git clone https://github.com/izhubs/iz-wp-lite.git my-site
@@ -15,11 +15,11 @@ docker compose up -d --build
 
 Open: http://localhost:8080
 
-SQLite mode không cần database configuration. Phù hợp để test nhanh, xem giao diện, dev theme.
+SQLite requires no database configuration. Use for rapid UI testing, theme development, and plugin evaluation.
 
 ---
 
-## Full stack local (MariaDB — giống production)
+## Full stack — MariaDB mode (matches production)
 
 ```bash
 git clone https://github.com/izhubs/iz-wp-lite.git my-site
@@ -27,7 +27,7 @@ cd my-site
 cp .env.example .env
 ```
 
-Mở `.env`, đảm bảo:
+Edit `.env` and confirm:
 ```ini
 DB_ENGINE=mysql
 WP_ENV=development
@@ -39,45 +39,45 @@ WP_SITEURL=http://localhost:8080/wp
 docker compose up -d --build
 ```
 
-MariaDB khởi động mất ~10–15 giây lần đầu. Kiểm tra:
+MariaDB takes ~10–15 seconds to initialize on first run:
 ```bash
 docker compose logs mariadb --follow
-# Chờ dòng: "ready for connections"
+# Wait for: "ready for connections"
 ```
 
 Open: http://localhost:8080
 
 ---
 
-## Chuyển đổi giữa SQLite và MariaDB
+## Switching between SQLite and MariaDB
 
-Sửa `.env`:
+Edit `.env`:
 ```ini
-# MariaDB (default, giống production):
+# MariaDB (default, 100% plugin compatible):
 DB_ENGINE=mysql
 
-# SQLite (instant, không cần DB service):
+# SQLite (instant boot, no database service):
 DB_ENGINE=sqlite
 ```
 
-Restart app container (không cần rebuild):
+Restart the app container without rebuilding:
 ```bash
 docker compose restart app
 ```
 
-**Lưu ý:** Chuyển engine sẽ mất data nếu đã cài WordPress. Mỗi engine có database riêng biệt — không convert tự động.
+**Note:** Switching engines does not migrate existing data. Each engine maintains a separate database. WordPress setup must be re-completed after switching.
 
 ---
 
 ## WP-CLI
 
-Chạy WP-CLI bên trong container:
+Run WP-CLI inside the container:
 
 ```bash
-# Alias tiện dụng (thêm vào ~/.bashrc hoặc ~/.zshrc)
+# Convenient alias — add to ~/.bashrc or ~/.zshrc
 alias wp='docker compose exec app wp --allow-root'
 
-# Sử dụng
+# Usage
 wp core version
 wp plugin list
 wp user list
@@ -87,40 +87,40 @@ wp search-replace 'http://old.domain' 'http://new.domain' --all-tables
 
 ---
 
-## Cài plugin mới
+## Installing plugins
 
 ```bash
-# Tìm plugin trên https://wpackagist.org
+# Search for any plugin at https://wpackagist.org
 composer require wpackagist-plugin/contact-form-7
 
-# Plugin được auto-activated qua 01-default-plugins-activator.php mu-plugin
-# Hoặc activate thủ công:
+# Plugins are auto-activated via 01-default-plugins-activator.php mu-plugin
+# Or activate manually:
 wp plugin activate contact-form-7
 ```
 
 ---
 
-## Xem logs
+## Viewing logs
 
 ```bash
-# Tất cả containers
+# All containers
 docker compose logs --follow
 
-# Riêng app (Caddy + PHP-FPM)
+# App only (Caddy + PHP-FPM)
 docker compose logs app --follow
 
-# Riêng MariaDB
+# MariaDB only
 docker compose logs mariadb --follow
 
-# WordPress debug log (bật WP_DEBUG=true trong .env trước)
+# WordPress debug log (requires WP_DEBUG=true in .env)
 docker compose exec app tail -f /var/www/html/web/app/debug.log
 ```
 
 ---
 
-## Debug PHP
+## PHP debug mode
 
-Bật debug mode trong `.env`:
+Enable in `.env`:
 ```ini
 WP_ENV=development
 WP_DEBUG=true
@@ -128,55 +128,50 @@ WP_DEBUG_LOG=true
 WP_DEBUG_DISPLAY=false
 ```
 
-Restart:
+Apply:
 ```bash
 docker compose restart app
-```
-
-Log lỗi PHP:
-```bash
 docker compose exec app tail -f /var/www/html/web/app/debug.log
 ```
 
 ---
 
-## Bind-mount code để live edit (không cần rebuild)
+## Live editing — bind-mount source (no rebuild needed)
 
-Bỏ comment trong `docker/docker-compose.yml`:
+Uncomment in `docker/docker-compose.yml`:
 ```yaml
 volumes:
   - wp_database:/var/www/html/web/app/database
   - wp_uploads:/var/www/html/web/app/uploads
   - wp_sessions:/var/lib/php/sessions
-  # Uncomment lines below for live editing:
-  - ../web/app:/var/www/html/web/app   # ← bỏ dấu #
-  - ../config:/var/www/html/config     # ← bỏ dấu #
+  - ../web/app:/var/www/html/web/app   # ← uncomment
+  - ../config:/var/www/html/config     # ← uncomment
 ```
 
 ```bash
-docker compose up -d  # không cần --build
+docker compose up -d   # no --build required
 ```
 
-Thay đổi file local → phản ánh ngay trong container.
+Local file changes reflect immediately inside the container.
 
 ---
 
-## HTTPS local (tuỳ chọn)
+## Local HTTPS (optional)
 
-Caddy hỗ trợ `localhost` HTTPS qua mkcert. Sửa `docker/Caddyfile`:
+Caddy supports `localhost` HTTPS via mkcert. Edit `docker/Caddyfile`:
 
 ```caddyfile
 {
   admin off
-  # Xóa dòng auto_https off để bật local HTTPS
+  # Remove auto_https off to enable local HTTPS
 }
 
 localhost:8443 {
-  # ... phần còn lại giữ nguyên
+  # ... rest of config unchanged
 }
 ```
 
-Và update `docker/docker-compose.yml` để expose port 8443:
+Update port mapping in `docker/docker-compose.yml`:
 ```yaml
 ports:
   - "8080:8080"
@@ -185,41 +180,44 @@ ports:
 
 ---
 
-## Các lệnh thường dùng
+## Common commands
 
 ```bash
 # Start
 docker compose up -d
 
-# Stop (giữ data)
+# Stop (preserves data)
 docker compose down
 
-# Xóa tất cả kể cả data (cẩn thận)
+# Wipe everything including volumes (destructive)
 docker compose down -v
 
-# Rebuild image sau khi sửa Dockerfile
+# Rebuild image after Dockerfile changes
 docker compose up -d --build
 
-# Shell vào container
+# Shell into app container
 docker compose exec app sh
 
 # MariaDB shell
-docker compose exec mariadb mariadb -u"${DB_USER:-wp_user}" -p"${DB_PASSWORD:-wp_secure_password}" "${DB_NAME:-wp_lite}"
+docker compose exec mariadb mariadb \
+  -u"${DB_USER:-wp_user}" \
+  -p"${DB_PASSWORD:-wp_secure_password}" \
+  "${DB_NAME:-wp_lite}"
 
-# Xem RAM usage thực tế
+# Check actual RAM usage
 docker stats --no-stream
 
-# Composer install (trong container, không cần PHP local)
+# Composer install inside container (no local PHP required)
 docker compose exec app composer install
 ```
 
 ---
 
-## Reset về trạng thái ban đầu
+## Full reset
 
 ```bash
-docker compose down -v          # Xóa containers + volumes (mất data WP)
-docker volume prune             # Dọn volumes không dùng
-docker image rm iz-wp-lite-app  # Xóa image để rebuild từ đầu
-docker compose up -d --build    # Build lại từ đầu
+docker compose down -v          # Remove containers + volumes (data lost)
+docker volume prune             # Clean orphaned volumes
+docker image rm iz-wp-lite-app  # Remove image to force full rebuild
+docker compose up -d --build
 ```

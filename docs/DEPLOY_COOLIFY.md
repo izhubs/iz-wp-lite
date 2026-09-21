@@ -1,50 +1,49 @@
-# Deploy to Coolify
+# Deploying to Coolify
 
-[Coolify](https://coolify.io) là self-hosted PaaS chạy trên VPS của bạn, tương tự Heroku/Railway nhưng không tốn phí platform. Coolify handle SSL (Traefik), Git auto-deploy, và environment variables qua UI.
+[Coolify](https://coolify.io) is a self-hosted PaaS that runs on your own VPS. It handles SSL (via Traefik), Git-based auto-deploy, and environment variable management through a web UI — similar to Heroku or Railway but without platform fees.
 
-**Yêu cầu:** VPS 512MB+ với Coolify đã cài sẵn. Xem [coolify.io/docs](https://coolify.io/docs/installation) để cài Coolify.
+**Requirement:** A VPS with Coolify installed. See [coolify.io/docs](https://coolify.io/docs/installation) for Coolify setup.
 
 ---
 
-## Kiến trúc khi deploy lên Coolify
+## How it works
 
 ```
 Internet
-  → Traefik (Coolify, port 80/443, handle SSL)
-    → iz-wp-lite app container (port 8080, Caddy làm router nội bộ)
-      → PHP-FPM (port 9000 nội bộ)
-    → iz-wp-lite mariadb container (port 3306 nội bộ)
+  → Traefik (Coolify-managed, ports 80/443, SSL termination)
+    → iz-wp-lite app container (port 8080, Caddy as internal router)
+      → PHP-FPM (port 9000, internal)
+    → iz-wp-lite mariadb container (port 3306, internal)
 ```
 
-Caddy trong container đã set `auto_https off` — không xung đột với Traefik.
-`X-Forwarded-Proto` từ Traefik được `config/environments/production.php` xử lý đúng.
+Caddy in the container has `auto_https off` — no conflict with Traefik.
+`X-Forwarded-Proto` headers from Traefik are handled by `config/environments/production.php`.
 
 ---
 
-## Bước 1: Tạo project trong Coolify
+## Step 1: Create a project in Coolify
 
-1. Vào Coolify dashboard → **Projects** → **New Project**
-2. Đặt tên: `iz-wp-lite` (hoặc tên site cụ thể)
+1. Open your Coolify dashboard → **Projects** → **New Project**
+2. Name it (e.g., `iz-wp-lite` or the client site name)
 3. **Add New Resource** → **Docker Compose**
 
 ---
 
-## Bước 2: Kết nối Git repository
+## Step 2: Connect the Git repository
 
 - **Source:** GitHub / GitLab / Gitea / Public URL
-- **Repository:** `https://github.com/izhubs/iz-wp-lite` (hoặc fork của bạn)
+- **Repository:** `https://github.com/izhubs/iz-wp-lite` (or your fork)
 - **Branch:** `main`
-- **Docker Compose Location:** `docker-compose.yml` (file ở root repo)
+- **Docker Compose Location:** `docker-compose.yml` (root-level file)
 
-Nếu Coolify không tìm thấy compose file:
-- Thử đường dẫn: `docker/docker-compose.yml`
-- Hoặc custom compose path trong Coolify settings
+If Coolify cannot find the compose file, try the alternative path:
+- `docker/docker-compose.yml`
 
 ---
 
-## Bước 3: Environment Variables
+## Step 3: Set environment variables
 
-Vào **Environment Variables** trong Coolify project, thêm từng biến:
+In Coolify → **Environment Variables**, add each variable:
 
 ```
 WP_ENV                production
@@ -65,131 +64,136 @@ LOGGED_IN_SALT        <generate>
 NONCE_SALT            <generate>
 ```
 
-**Quan trọng:** Đánh dấu `DB_PASSWORD` và các salts là **Secret** trong Coolify UI để không bị log.
+Mark `DB_PASSWORD` and all salts as **Secret** in the Coolify UI to prevent them from appearing in logs.
 
-Generate salts tại: https://roots.io/salts.html
+Generate salts: https://roots.io/salts.html
 
 ---
 
-## Bước 4: Domain & SSL
+## Step 4: Domain and SSL
 
 1. Coolify → **Domains** → **Add Domain**: `yourdomain.com`
-2. Trỏ DNS về IP VPS đang chạy Coolify:
+2. Point DNS to the Coolify VPS IP:
    ```
    A    yourdomain.com    <coolify-vps-ip>
    ```
-3. Coolify + Traefik tự động cấp Let's Encrypt SSL — không cần cấu hình thêm
+3. Traefik automatically provisions Let's Encrypt SSL — no further configuration required.
 
 ---
 
-## Bước 5: Deploy
+## Step 5: Deploy
 
 Coolify → **Deploy** → **Deploy Now**
 
-Lần đầu build mất 2–4 phút (Docker image chưa cache).
-
-Kiểm tra logs trong Coolify UI: **Deployments** → chọn deployment mới nhất → xem output.
+First build takes 2–4 minutes (uncached). Monitor output under **Deployments** → latest deployment → build log.
 
 ---
 
-## Bước 6: Xác nhận
+## Step 6: Verify
 
-Truy cập `https://yourdomain.com` → WordPress installation wizard.
+Visit `https://yourdomain.com` — you should see the WordPress installation wizard.
 
-Nếu thấy trang Caddy default thay vì WordPress:
-- Kiểm tra `WP_HOME` và `WP_SITEURL` trong env vars
-- Restart containers trong Coolify
-
----
-
-## Auto-deploy khi push code
-
-Trong Coolify → **Source** → bật **Auto Deploy on Push**.
-
-Mọi `git push` vào branch `main` sẽ trigger rebuild và redeploy tự động.
+If you see a default Caddy page instead of WordPress:
+- Check that `WP_HOME` is set to `https://yourdomain.com` (not `http://`)
+- Restart containers in Coolify UI
 
 ---
 
-## Persistent Volumes
+## Auto-deploy on push
 
-Coolify tự động giữ Docker named volumes giữa các lần deploy:
+Coolify → **Source** → enable **Auto Deploy on Push**.
 
-| Volume | Mount path | Nội dung |
+Every `git push` to `main` triggers a rebuild and redeploy automatically.
+
+---
+
+## Persistent volumes
+
+Coolify preserves Docker named volumes across deployments:
+
+| Volume | Mount path | Contents |
 |---|---|---|
-| `iz_wp_mariadb_data` | `/var/lib/mysql` | Database MariaDB |
-| `iz_wp_uploads` | `/var/www/html/web/app/uploads` | Media files |
-| `iz_wp_sessions` | `/var/lib/php/sessions` | PHP sessions |
-| `iz_wp_database` | `/var/www/html/web/app/database` | SQLite file (nếu dùng) |
+| `iz_wp_mariadb_data` | `/var/lib/mysql` | MariaDB database files |
+| `iz_wp_uploads` | `/var/www/html/web/app/uploads` | WordPress media files |
+| `iz_wp_sessions` | `/var/lib/php/sessions` | PHP session files |
+| `iz_wp_database` | `/var/www/html/web/app/database` | SQLite file (if DB_ENGINE=sqlite) |
 
-`docker compose down` trong Coolify **không xóa volumes**. Chỉ "Delete Project" mới xóa.
-
----
-
-## Scaling lên Tier 2 trên Coolify
-
-Khi traffic tăng, nâng memory limit trong Coolify mà không cần sửa file:
-
-1. Coolify → **Resources** → chỉnh memory limit cho service `app` và `mariadb`
-2. Hoặc sửa `docker-compose.yml` trong repo, `mem_limit: 384M` → commit → Coolify auto-redeploy
+**Note:** `docker compose down` in Coolify does **not** delete volumes. Only deleting the project removes them.
 
 ---
 
-## WooCommerce trên Coolify
+## Scaling to a larger VPS
 
-Dùng override profile:
+When traffic increases, raise memory limits without changing the codebase:
 
-```bash
-# Trong Coolify, đổi Docker Compose Location thành:
-docker/docker-compose.yml
+1. Edit `mem_limit` values in `docker-compose.yml` → commit → Coolify auto-redeploys
+2. Or override resources directly in Coolify → **Resources** for each service
 
-# Thêm Compose override trong Coolify settings:
+Tier reference:
+
+| Tier | `mem_limit` app | `mem_limit` mariadb | VPS RAM |
+|---|---|---|---|
+| 1 | `192M` | `96M` | 512MB |
+| 2 | `384M` | `384M` | 1GB |
+| 3 | `768M` | `768M` | 2GB |
+
+---
+
+## WooCommerce profile on Coolify
+
+Use the WooCommerce Docker Compose override:
+
+In Coolify → **Docker Compose** settings → add a second compose file:
+```
 docker/profiles/woocommerce.yml
 ```
 
-Hoặc copy nội dung `docker/profiles/woocommerce.yml` merge vào `docker-compose.yml` rồi commit.
+Or merge the contents of `docker/profiles/woocommerce.yml` into `docker-compose.yml`, commit, and let Coolify redeploy.
+
+Minimum VPS for WooCommerce: **1GB RAM** (Hetzner CX21, ~\$8/month).
 
 ---
 
-## WP-CLI qua Coolify Terminal
+## WP-CLI via Coolify terminal
 
-Coolify cung cấp terminal access vào container. Trong Coolify UI → **Containers** → `iz-wp-lite-app` → **Terminal**:
+Coolify provides terminal access to running containers.
 
+In Coolify UI → **Containers** → `iz-wp-lite-app` → **Terminal**:
 ```bash
 wp --allow-root core version
 wp --allow-root plugin list
 wp --allow-root cache flush
 ```
 
-Hoặc SSH vào VPS:
+Or SSH into the Coolify VPS directly:
 ```bash
-ssh user@coolify-vps-ip
+ssh user@<coolify-vps-ip>
 docker exec -it iz-wp-lite-app wp --allow-root core version
 ```
 
 ---
 
-## Troubleshooting Coolify
+## Troubleshooting
 
-| Triệu chứng | Nguyên nhân thường gặp | Fix |
+| Symptom | Likely cause | Fix |
 |---|---|---|
-| Deploy fail "compose file not found" | Coolify tìm sai path | Đổi compose path thành `docker-compose.yml` |
-| `ERR_TOO_MANY_REDIRECTS` | `WP_HOME` chưa đặt hoặc `X-Forwarded-Proto` lỗi | Kiểm tra env `WP_HOME=https://...` (phải có https) |
-| SSL certificate không cấp | DNS chưa propagate | Chờ DNS propagate, check `dig yourdomain.com +short` |
-| MariaDB "connection refused" | Container MariaDB khởi động chậm hơn app | Coolify retry healthcheck — chờ 30–60s, refresh |
-| Memory OOM | `mem_limit` trong compose quá thấp cho VPS | Tăng `mem_limit` trong compose file hoặc Coolify Resources |
-| "Error establishing a database connection" | `DB_HOST` sai | Phải là `mariadb:3306` (tên service trong compose) |
-| Uploads không hiển thị sau redeploy | Volume mount bị thay đổi | Kiểm tra volumes được Coolify preserve, không phải bind mount |
+| Deploy fails "compose file not found" | Wrong compose file path | Set path to `docker-compose.yml` (root) |
+| `ERR_TOO_MANY_REDIRECTS` | `WP_HOME` is `http://` instead of `https://` | Set `WP_HOME=https://yourdomain.com` |
+| SSL certificate not issued | DNS not propagated | Run `dig yourdomain.com +short`, wait and retry |
+| MariaDB "connection refused" on first deploy | MariaDB container slower than app container | Coolify retries healthcheck automatically — wait 30–60s |
+| OOM kill / container restart loop | `mem_limit` too low | Raise `mem_limit` in compose or Coolify Resources |
+| "Error establishing a database connection" | Wrong `DB_HOST` | Must be `mariadb:3306` (service name in compose) |
+| Uploads missing after redeploy | Volume not mounted correctly | Confirm Coolify preserves named volumes (not bind mounts) |
 
 ---
 
-## So sánh Coolify vs izDeploy
+## Coolify vs bare VPS vs izDeploy
 
-| | Coolify | izDeploy |
-|---|---|---|
-| **Cài đặt** | Cài Coolify trên VPS của bạn | Cloud PaaS, không cần quản lý server |
-| **SSL** | Traefik + Let's Encrypt | Caddy auto-cert |
-| **Deploy source** | Git (GitHub/GitLab/Gitea) | `.agent/izdeploy.json` contract |
-| **Memory limit** | UI hoặc `mem_limit` trong compose | `deploy.resources.limits` |
-| **Compose file path** | `docker-compose.yml` (root) | `docker/docker-compose.yml` |
-| **Cost** | Free (bạn tự trả VPS) | Tùy pricing izDeploy |
-| **Multi-site** | Coolify quản lý nhiều projects | Mỗi contract độc lập |
+| | Bare VPS | Coolify | izDeploy |
+|---|---|---|---|
+| **SSL** | Caddy auto-cert (direct domain) | Traefik (Coolify-managed) | Caddy contract |
+| **Compose file** | `docker/docker-compose.yml` | `docker-compose.yml` (root) | `.agent/izdeploy.json` |
+| **Env vars** | `.env` file on server | Coolify UI | `izdeploy secrets set` |
+| **Updates** | `git pull` + `docker compose up` | `git push` auto-triggers | `git push` auto-triggers |
+| **Multi-site** | Manual per site | Coolify projects | Separate contracts |
+| **Best for** | Full control, DevOps teams | Agencies managing multiple clients | AI-native, izDeploy users |

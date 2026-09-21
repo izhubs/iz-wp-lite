@@ -1,20 +1,20 @@
-# Deploy to izDeploy PaaS
+# Deploying to izDeploy PaaS
 
-izDeploy đọc file `.agent/izdeploy.json` trong repo và tự động provision, build, và deploy container lên infrastructure.
-
----
-
-## Yêu cầu
-
-- Tài khoản izDeploy (liên hệ: hello@izdigi.com)
-- Domain đã trỏ về izDeploy nameservers
-- Repository đã push lên GitHub / GitLab
+izDeploy reads the `.agent/izdeploy.json` contract file from your repository and automatically provisions, builds, and deploys your container to managed infrastructure.
 
 ---
 
-## Cấu trúc contract
+## Requirements
 
-File `.agent/izdeploy.json` (schema v2.0) trong repo đã cấu hình sẵn:
+- An izDeploy account (contact: hello@izdigi.com)
+- A domain pointing to izDeploy nameservers
+- Repository pushed to GitHub or GitLab
+
+---
+
+## Contract file
+
+`.agent/izdeploy.json` (schema v2.0) is already configured in the repository:
 
 ```json
 {
@@ -27,39 +27,39 @@ File `.agent/izdeploy.json` (schema v2.0) trong repo đã cấu hình sẵn:
   },
   "services": ["web", "mariadb"],
   "vps_profiles": {
-    "tier1": { "512MB, $4.50/mo" },
-    "tier2": { "1GB, $8/mo" },
-    "tier3": { "2GB + Redis, $15/mo" }
+    "tier1": "512MB VPS, ~$4.50/mo",
+    "tier2": "1GB VPS, ~$8/mo",
+    "tier3": "2GB VPS + Redis, ~$15/mo"
   }
 }
 ```
 
-AI Agents (Cursor, Claude Code, Antigravity) đọc contract này và tự thực hiện deploy mà không cần human input.
+AI coding agents (Cursor, Claude Code, Antigravity) read this contract and execute deployments without requiring human intervention.
 
 ---
 
-## Deploy qua izDeploy CLI
+## Deploy via izDeploy CLI
 
 ```bash
-# Cài izDeploy CLI
+# Install the CLI
 npm install -g @izdigi/deploy-cli
 
-# Login
+# Authenticate
 izdeploy login
 
-# Deploy từ repo root
+# Deploy from repository root
 izdeploy deploy --contract .agent/izdeploy.json --domain yourdomain.com
 
-# Chọn VPS tier
+# Select a VPS tier
 izdeploy deploy --contract .agent/izdeploy.json --domain yourdomain.com --tier tier2
 
-# Xem status
+# Check deployment status
 izdeploy status my-site
 
-# Xem logs
+# Stream logs
 izdeploy logs my-site --follow
 
-# Rollback về version trước
+# Roll back to previous version
 izdeploy rollback my-site
 ```
 
@@ -67,7 +67,7 @@ izdeploy rollback my-site
 
 ## Secrets management
 
-Secrets (DB password, WP salts) không được lưu trong repo. Đăng ký qua izDeploy CLI:
+Secrets (database password, WordPress salts) are never stored in the repository. Register them via the CLI:
 
 ```bash
 izdeploy secrets set my-site \
@@ -81,26 +81,26 @@ izdeploy secrets set my-site \
   LOGGED_IN_SALT="<salt>" \
   NONCE_SALT="<salt>"
 
-# Generate salts tự động
+# Or auto-generate salts
 izdeploy secrets generate-salts my-site
 ```
 
 ---
 
-## Auto-deploy qua Git webhook
+## Git webhook auto-deploy
 
 ```bash
-# Kết nối GitHub repo
+# Connect GitHub repository
 izdeploy connect github --repo izhubs/iz-wp-lite --project my-site
 
-# Mọi git push vào main branch → trigger deploy tự động
+# Every git push to main branch triggers an automatic deployment
 ```
 
 ---
 
-## VPS Tier selection
+## VPS tier selection
 
-| Tier | Command | RAM | Price |
+| Tier | Flag | RAM | Price |
 |---|---|---|---|
 | Tier 1 | `--tier tier1` | 512MB | ~\$4.50/mo |
 | Tier 2 | `--tier tier2` | 1GB | ~\$8/mo |
@@ -108,26 +108,28 @@ izdeploy connect github --repo izhubs/iz-wp-lite --project my-site
 
 ---
 
-## AI Agent deploy (Vibe Coding workflow)
+## AI agent deployment (Vibe Coding workflow)
 
-Trong IDE (Cursor / Antigravity / Claude Code):
+In your IDE (Cursor / Antigravity / Claude Code):
 
 ```
 "Deploy this WordPress site to production on a 512MB VPS using izDeploy"
 ```
 
-Agent đọc `.agent/izdeploy.json` → tự generate deploy command → execute → báo cáo URL.
+The agent reads `.agent/izdeploy.json` → generates the deploy command → executes → reports the live URL back.
 
-Contract-driven deployment: AI không cần biết infrastructure details — tất cả được define trong `izdeploy.json`.
+Contract-driven deployment means the AI agent does not need to know infrastructure details — everything is defined in the contract file.
 
 ---
 
-## Pre/Post deploy hooks
+## Pre/post deploy hooks
 
-Trong `izdeploy.json`:
+Defined in `izdeploy.json`:
 
 ```json
 "deployment": {
+  "strategy": "rolling",
+  "zero_downtime": true,
   "pre_deploy": [
     "docker compose exec -T mariadb mariadb-admin ping --silent"
   ],
@@ -137,22 +139,22 @@ Trong `izdeploy.json`:
 }
 ```
 
-Hook `pre_deploy` kiểm tra MariaDB healthy trước khi swap container. `post_deploy` flush cache sau khi container mới live.
+`pre_deploy` verifies MariaDB is healthy before the new container goes live. `post_deploy` flushes the WordPress object cache after the container swap.
 
 ---
 
-## Volumes & Backups
+## Volumes and backups
 
-izDeploy preserve named volumes across deploys. Backup tự động:
+izDeploy preserves named volumes across all deployments. Backup commands:
 
 ```bash
-# Manual backup
+# Create a manual backup
 izdeploy backup create my-site
 
-# List backups
+# List available backups
 izdeploy backup list my-site
 
-# Restore
+# Restore from a specific backup
 izdeploy backup restore my-site --backup-id <id>
 ```
 
@@ -161,10 +163,15 @@ izdeploy backup restore my-site --backup-id <id>
 ## Monitoring
 
 ```bash
-izdeploy stats my-site          # RAM, CPU, request count
-izdeploy logs my-site           # Container logs
-izdeploy alerts set my-site \   # Alert khi RAM > 80%
-  --cpu-threshold 80 \
+# Resource usage (RAM, CPU, request count)
+izdeploy stats my-site
+
+# Container logs
+izdeploy logs my-site
+
+# Set alerts (fires when thresholds are exceeded)
+izdeploy alerts set my-site \
   --memory-threshold 80 \
+  --cpu-threshold 80 \
   --email admin@yourdomain.com
 ```

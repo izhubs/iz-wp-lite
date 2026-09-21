@@ -1,41 +1,38 @@
-# Deploy to VPS (Bare Metal)
+# Deploying to a VPS
 
-Hướng dẫn này dùng **Hetzner CX11** (Ubuntu 22.04 LTS, 512MB RAM, ~\$4.50/tháng) làm ví dụ. Các bước tương tự áp dụng cho BuyVM, Vultr, DigitalOcean, Contabo.
+This guide uses **Hetzner CX11** (Ubuntu 22.04 LTS, 512MB RAM, ~\$4.50/month) as the reference target. The same steps apply to BuyVM, Vultr, DigitalOcean, Contabo, and any VPS running Ubuntu 22.04.
 
 ---
 
-## 1. Chuẩn bị VPS
+## 1. Provision the server
 
-### Tạo server trên Hetzner
+### Create a Hetzner server
 
-1. Đăng ký tại [hetzner.com/cloud](https://hetzner.com/cloud)
-2. New Server → Location: Nuremberg hoặc Singapore → Image: **Ubuntu 22.04** → Type: **CX11 (2 vCPU, 512MB, 20GB SSD)**
-3. SSH Key: thêm public key của bạn
+1. Sign up at [hetzner.com/cloud](https://hetzner.com/cloud)
+2. New Server → Location: Nuremberg or Singapore → Image: **Ubuntu 22.04** → Type: **CX11 (2 vCPU, 512MB RAM, 20GB SSD)**
+3. Add your SSH public key
 4. Create
 
-### SSH vào server
+### SSH into the server
 
 ```bash
 ssh root@<your-vps-ip>
 ```
 
-### Cài đặt Docker
+### Install Docker
 
 ```bash
 curl -fsSL https://get.docker.com | sh
 systemctl enable docker
 systemctl start docker
-
-# Test
 docker --version
 ```
 
-### Tạo user không phải root (khuyến nghị)
+### Create a non-root deploy user (recommended)
 
 ```bash
 useradd -m -s /bin/bash deploy
 usermod -aG docker deploy
-# Copy SSH key cho user deploy
 mkdir -p /home/deploy/.ssh
 cp ~/.ssh/authorized_keys /home/deploy/.ssh/
 chown -R deploy:deploy /home/deploy/.ssh
@@ -45,25 +42,23 @@ chmod 600 /home/deploy/.ssh/authorized_keys
 
 ---
 
-## 2. Thêm swap (bắt buộc cho 512MB VPS)
+## 2. Add swap (required for 512MB VPS)
 
-MariaDB spike RAM khi khởi động. Swap ngăn OOM kill:
+MariaDB spikes RAM on startup. Swap prevents OOM kills during initialization:
 
 ```bash
 fallocate -l 1G /swapfile
 chmod 600 /swapfile
 mkswap /swapfile
 swapon /swapfile
-
-# Persist sau reboot
 echo '/swapfile none swap sw 0 0' >> /etc/fstab
 
-# Giảm swap aggressiveness (chỉ dùng khi thực sự cần)
+# Use swap only when necessary (reduces SSD wear)
 echo 'vm.swappiness=10' >> /etc/sysctl.conf
 sysctl -p
 ```
 
-Kiểm tra:
+Verify:
 ```bash
 free -h
 # Swap: 1.0Gi total
@@ -71,20 +66,20 @@ free -h
 
 ---
 
-## 3. Cài iz-wp-lite
+## 3. Install iz-wp-lite
 
-SSH với user `deploy`:
+SSH as the `deploy` user:
 ```bash
 ssh deploy@<your-vps-ip>
 ```
 
-Dùng one-liner installer (Tier 1 mặc định, phù hợp CX11):
+One-command installer (Tier 1 default, fits CX11):
 ```bash
 curl -fsSL https://raw.githubusercontent.com/izhubs/iz-wp-lite/main/install.sh | bash -s my-site
 cd my-site
 ```
 
-Hoặc manual:
+Or manually:
 ```bash
 git clone https://github.com/izhubs/iz-wp-lite.git my-site
 cd my-site
@@ -93,13 +88,13 @@ cp .env.example .env
 
 ---
 
-## 4. Cấu hình .env
+## 4. Configure .env for production
 
 ```bash
 nano .env
 ```
 
-Thay đổi các giá trị sau:
+Update the following:
 
 ```ini
 WP_ENV=production
@@ -109,43 +104,40 @@ WP_SITEURL=https://yourdomain.com/wp
 DB_ENGINE=mysql
 DB_NAME=wp_lite
 DB_USER=wp_user
-DB_PASSWORD=<strong-password-here>    # Thay bằng password mạnh
+DB_PASSWORD=<strong-random-password>
 DB_HOST=mariadb:3306
 
-# Salts — generate tại: https://roots.io/salts.html
-AUTH_KEY='<random-64-char-string>'
-SECURE_AUTH_KEY='<random-64-char-string>'
-LOGGED_IN_KEY='<random-64-char-string>'
-NONCE_KEY='<random-64-char-string>'
-AUTH_SALT='<random-64-char-string>'
-SECURE_AUTH_SALT='<random-64-char-string>'
-LOGGED_IN_SALT='<random-64-char-string>'
-NONCE_SALT='<random-64-char-string>'
+# Generate at: https://roots.io/salts.html
+AUTH_KEY='<64-char-random-string>'
+SECURE_AUTH_KEY='<64-char-random-string>'
+LOGGED_IN_KEY='<64-char-random-string>'
+NONCE_KEY='<64-char-random-string>'
+AUTH_SALT='<64-char-random-string>'
+SECURE_AUTH_SALT='<64-char-random-string>'
+LOGGED_IN_SALT='<64-char-random-string>'
+NONCE_SALT='<64-char-random-string>'
 ```
 
 ---
 
-## 5. Cấu hình Caddyfile cho production (HTTPS thực)
+## 5. Configure Caddyfile for production (real domain + auto HTTPS)
 
-`docker/Caddyfile` hiện tại dùng `auto_https off` và port 8080 (dev mode). Cho production với domain thật:
+`docker/Caddyfile` ships with `auto_https off` and port 8080 for local development. For production with a real domain, replace the entire file:
 
 ```bash
 nano docker/Caddyfile
 ```
 
-Thay toàn bộ nội dung:
-
 ```caddyfile
 {
     admin off
-    email admin@yourdomain.com    # Email nhận thông báo SSL từ Let's Encrypt
+    email admin@yourdomain.com    # Let's Encrypt notification address
 }
 
 yourdomain.com {
     root * /var/www/html/web
     encode gzip zstd
 
-    # Security: block dotfiles, config, database
     @blocked {
         path */.*
         path *.env*
@@ -157,17 +149,14 @@ yourdomain.com {
     }
     respond @blocked 403
 
-    # Block XML-RPC
     @xmlrpc { path /xmlrpc.php }
     respond @xmlrpc 403
 
-    # Rewrite /wp-content/* → /app/*
     @wp_content { path_regexp wpcontent ^/wp-content/(.*)$ }
     rewrite @wp_content /app/{re.wpcontent.1}
 
     file_server
 
-    # Tier 2: Static page cache
     @cached_page {
         not method POST
         not path_regexp ^/(wp-admin|wp-login\.php)
@@ -200,12 +189,7 @@ yourdomain.com {
 }
 ```
 
-Update `docker/docker-compose.yml` để expose port 80 và 443:
-```bash
-nano docker/docker-compose.yml
-```
-
-Thay phần `ports` của service `app`:
+Update `docker/docker-compose.yml` to expose ports 80 and 443:
 ```yaml
 ports:
   - "80:80"
@@ -215,46 +199,43 @@ ports:
 
 ---
 
-## 6. DNS
+## 6. Point DNS to the VPS
 
-Trỏ domain về VPS IP trước khi start container (Caddy cần verify domain để cấp SSL):
+DNS must resolve before starting Caddy (Caddy validates domain ownership for SSL):
 
 ```
 A     yourdomain.com        <your-vps-ip>
-A     www.yourdomain.com    <your-vps-ip>   # Optional
+A     www.yourdomain.com    <your-vps-ip>   # optional
 ```
 
-TTL 300 (5 phút) để propagate nhanh. Kiểm tra:
+Set TTL to 300 (5 minutes) for fast propagation. Verify:
 ```bash
 dig yourdomain.com +short
-# Phải trả về <your-vps-ip>
+# Must return <your-vps-ip>
 ```
 
 ---
 
-## 7. Start production
+## 7. Start
 
 ```bash
 docker compose -f docker/docker-compose.yml up -d --build
 ```
 
-Caddy tự động request SSL certificate từ Let's Encrypt. Lần đầu mất ~30 giây.
+Caddy automatically requests a Let's Encrypt SSL certificate. First issuance takes ~30 seconds.
 
-Kiểm tra:
+Verify:
 ```bash
-# SSL certificate
 curl -I https://yourdomain.com
 
-# Container status
 docker compose -f docker/docker-compose.yml ps
 
-# Logs
 docker compose -f docker/docker-compose.yml logs app --follow
 ```
 
 ---
 
-## 8. Systemd service (auto-start sau reboot)
+## 8. Auto-start on reboot (systemd)
 
 ```bash
 sudo nano /etc/systemd/system/iz-wp-lite.service
@@ -284,21 +265,20 @@ sudo systemctl enable iz-wp-lite
 sudo systemctl start iz-wp-lite
 ```
 
-Test:
+Test after reboot:
 ```bash
 sudo reboot
-# Sau khi reboot SSH lại
-docker ps  # Containers phải tự chạy lại
+# SSH back in after ~60 seconds
+docker ps   # Containers must be running automatically
 ```
 
 ---
 
 ## 9. Backup
 
-### Database backup
+### Database
 
 ```bash
-# Tạo script backup
 cat > /home/deploy/backup-db.sh << 'EOF'
 #!/bin/bash
 BACKUP_DIR="/home/deploy/backups"
@@ -312,62 +292,55 @@ docker compose -f /home/deploy/my-site/docker/docker-compose.yml exec -T mariadb
   "${DB_NAME:-wp_lite}" \
   | gzip > "$BACKUP_DIR/db_$DATE.sql.gz"
 
-# Giữ 7 ngày gần nhất
+# Retain last 7 days
 find "$BACKUP_DIR" -name "db_*.sql.gz" -mtime +7 -delete
-echo "Backup: $BACKUP_DIR/db_$DATE.sql.gz"
+echo "Backup saved: $BACKUP_DIR/db_$DATE.sql.gz"
 EOF
 
 chmod +x /home/deploy/backup-db.sh
 ```
 
-Thêm vào crontab (backup mỗi ngày 03:00):
+Schedule daily at 03:00:
 ```bash
 crontab -e
-# Thêm dòng:
+# Add:
 0 3 * * * /home/deploy/backup-db.sh >> /home/deploy/backup.log 2>&1
 ```
 
-### Uploads backup
+### Uploads
 
 ```bash
-# Rsync uploads về máy local
+# Pull uploads to local machine
 rsync -avz deploy@<your-vps-ip>:/home/deploy/my-site/web/app/uploads/ ./backup-uploads/
-
-# Hoặc dùng rclone sync lên Cloudflare R2 (xem thêm: docs/DEPLOY_R2.md)
 ```
 
 ---
 
-## 10. Update WordPress / plugins
+## 10. Updating WordPress and plugins
 
 ```bash
 cd /home/deploy/my-site
-
-# Pull latest code
 git pull
-
-# Update dependencies
 docker compose -f docker/docker-compose.yml exec app composer update --no-interaction
 
-# Rebuild nếu Dockerfile thay đổi
+# Rebuild only if Dockerfile changed
 docker compose -f docker/docker-compose.yml up -d --build
 
-# Flush cache
 docker compose -f docker/docker-compose.yml exec app wp --allow-root cache flush
 ```
 
 ---
 
-## 11. Monitor RAM thực tế
+## 11. Monitoring RAM
 
 ```bash
-# RAM usage realtime
+# Live container resource usage
 docker stats --no-stream
 
-# Xem memory limit có hiệu lực không
+# Verify memory limits are applied
 docker inspect iz-wp-lite-app | grep -i memory
 
-# MariaDB buffer pool status
+# MariaDB InnoDB buffer pool status
 docker compose -f docker/docker-compose.yml exec mariadb \
   mariadb -u root -e "SHOW ENGINE INNODB STATUS\G" 2>/dev/null | grep -A5 "BUFFER POOL"
 ```
@@ -387,13 +360,13 @@ ufw status
 
 ---
 
-## Troubleshooting VPS
+## Troubleshooting
 
-| Triệu chứng | Lệnh kiểm tra | Cách fix |
+| Symptom | Diagnostic command | Fix |
 |---|---|---|
-| Site không load | `docker compose logs app` | Xem lỗi PHP hoặc Caddy |
-| SSL không cấp | `docker compose logs app \| grep acme` | DNS chưa propagate, chờ thêm |
-| MariaDB crash | `docker compose logs mariadb` | OOM — kiểm tra `free -h`, tăng swap |
-| Site chậm | `docker stats` | RAM đầy, tăng swap hoặc nâng VPS tier |
-| "Error establishing DB connection" | `docker compose ps mariadb` | MariaDB chưa ready, chờ 15–30s |
-| Uploads không lưu | `docker compose exec app ls -la web/app/uploads` | Permission issue, chạy `chown -R www-data` |
+| Site not loading | `docker compose logs app` | Check PHP or Caddy errors |
+| SSL not issued | `docker compose logs app \| grep acme` | DNS not propagated yet — wait |
+| MariaDB crash | `docker compose logs mariadb` | OOM — check `free -h`, increase swap |
+| Site slow | `docker stats` | RAM pressure — add swap or upgrade VPS tier |
+| "Error establishing DB connection" | `docker compose ps mariadb` | MariaDB still initializing — wait 15–30s |
+| Uploads not saving | `docker compose exec app ls -la web/app/uploads` | Permission issue — run `chown -R www-data` |
