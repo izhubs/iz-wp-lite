@@ -21,47 +21,51 @@ services:
       DB_ENGINE: ${DB_ENGINE:-sqlite}
       DB_DIR: ${DB_DIR:-/var/www/html/web/app/database}
       DB_FILE: ${DB_FILE:-.ht.sqlite}
-      # MariaDB credentials (uncomment when switching to DB_ENGINE=mysql)
-      # DB_NAME: ${DB_NAME:-wp_lite}
-      # DB_USER: ${DB_USER:-wp_user}
-      # DB_PASSWORD: ${DB_PASSWORD:-wp_secure_password}
-      # DB_HOST: mariadb:3306
+      # MariaDB credentials (active by default for DB_ENGINE=mysql)
+      DB_NAME: ${DB_NAME:-wp_lite}
+      DB_USER: ${DB_USER:-wp_user}
+      DB_PASSWORD: ${DB_PASSWORD:-wp_secure_password}
+      DB_HOST: ${DB_HOST:-mariadb:3306}
     volumes:
       - wp_database:/var/www/html/web/app/database
       - wp_uploads:/var/www/html/web/app/uploads
       # Development source bind-mounts (uncomment for live host editing):
       # - ../web/app:/var/www/html/web/app
       # - ../config:/var/www/html/config
+    depends_on:
+      - mariadb
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 192M
           cpus: '1.0'
 
 # ==============================================================================
-# MariaDB Fallback Service (Uncomment when switching to DB_ENGINE=mysql)
+# MariaDB Micro-Footprint Service (~60MB RAM)
 # ==============================================================================
-#  mariadb:
-#    image: mariadb:10.11-alpine
-#    container_name: iz-wp-lite-db
-#    restart: unless-stopped
-#    environment:
-#      MYSQL_DATABASE: ${DB_NAME:-wp_lite}
-#      MYSQL_USER: ${DB_USER:-wp_user}
-#      MYSQL_PASSWORD: ${DB_PASSWORD:-wp_secure_password}
-#      MYSQL_RANDOM_ROOT_PASSWORD: '1'
-#    volumes:
-#      - db_data:/var/lib/mysql
-#    deploy:
-#      resources:
-#        limits:
-#          memory: 192M
-#          cpus: '0.5'
+  mariadb:
+    image: mariadb:10.11-alpine
+    container_name: iz-wp-lite-db
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-wp_lite}
+      MYSQL_USER: ${DB_USER:-wp_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-wp_secure_password}
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./mariadb-lowram.cnf:/etc/mysql/conf.d/lowram.cnf:ro
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+          cpus: '0.5'
 
 volumes:
   wp_database:
     name: iz_wp_database
   wp_uploads:
     name: iz_wp_uploads
-#  db_data:
-#    name: iz_wp_mariadb_data
+  db_data:
+    name: iz_wp_mariadb_data
