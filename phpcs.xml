@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<ruleset name="iz-wp-lite">
+    <description>iz-wp-lite PHP coding standards</description>
+
+    <!-- Directories to check -->
+    <file>web/app/mu-plugins</file>
+    <file>config</file>
+
+    <!-- Exclusions -->
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/web/wp/*</exclude-pattern>
+    <exclude-pattern>*/web/app/plugins/*</exclude-pattern>
+
+    <!-- PHP version target -->
+    <config name="php_version" value="80200"/>
+
+    <!-- Base standard: PSR-12 (modern PHP, less opinionated than WordPress standard) -->
+    <rule ref="PSR12">
+        <!-- Allow long lines in comment blocks (docstrings, DECISION blocks) -->
+        <exclude name="Generic.Files.LineLength"/>
+    </rule>
+
+    <!-- WordPress-specific: allow echo with parens -->
+    <rule ref="Squiz.Functions.FunctionDeclarationArgumentSpacing">
+        <properties>
+            <property name="equalsSpacing" value="1"/>
+        </properties>
+    </rule>
+</ruleset>
