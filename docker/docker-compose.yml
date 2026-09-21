@@ -2,7 +2,27 @@ version: '3.8'
 
 # ==============================================================================
 # iz-wp-lite Docker Compose Configuration
-# Default mode: Single-container SQLite (baseline memory: ~45MB RAM)
+#
+# VPS TIER SELECTION — uncomment the profile matching your VPS:
+#
+#   TIER 1 — 512MB VPS (~$4–5/mo, Hetzner CX11 / BuyVM 512)
+#     Default: mem_limit app=192M, mariadb=96M, uses mariadb-lowram.cnf
+#     Suitable for: 1–3 brochure sites, <20 concurrent users, no WooCommerce
+#
+#   TIER 2 — 1GB VPS (~$8/mo, Hetzner CX21)
+#     Change: app mem_limit=384M, mariadb mem_limit=384M
+#     Remove mariadb-lowram.cnf volume mount (use default MariaDB config)
+#     Suitable for: WooCommerce ≤50 orders/day, <50 concurrent users
+#
+#   TIER 3 — 2GB VPS (~$15/mo, Hetzner CX31)
+#     Change: app mem_limit=768M, mariadb mem_limit=768M
+#     Remove mariadb-lowram.cnf, add Redis service (see below)
+#     Suitable for: WooCommerce ≤300 orders/day, Redis object cache
+#
+# NOTE: MariaDB data (db_data volume) and uploads (wp_uploads volume) are
+# Docker named volumes — they PERSIST across container restarts, OOM kills,
+# and image rebuilds. `docker compose down` does NOT delete volumes.
+# To wipe data intentionally: `docker compose down -v`
 # ==============================================================================
 
 services:
@@ -13,15 +33,14 @@ services:
     container_name: iz-wp-lite-app
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "${APP_PORT:-8080}:8080"
     environment:
       WP_ENV: ${WP_ENV:-development}
       WP_HOME: ${WP_HOME:-http://localhost:8080}
       WP_SITEURL: ${WP_SITEURL:-http://localhost:8080/wp}
-      DB_ENGINE: ${DB_ENGINE:-sqlite}
+      DB_ENGINE: ${DB_ENGINE:-mysql}
       DB_DIR: ${DB_DIR:-/var/www/html/web/app/database}
       DB_FILE: ${DB_FILE:-.ht.sqlite}
-      # MariaDB credentials (active by default for DB_ENGINE=mysql)
       DB_NAME: ${DB_NAME:-wp_lite}
       DB_USER: ${DB_USER:-wp_user}
       DB_PASSWORD: ${DB_PASSWORD:-wp_secure_password}
@@ -29,6 +48,7 @@ services:
     volumes:
       - wp_database:/var/www/html/web/app/database
       - wp_uploads:/var/www/html/web/app/uploads
+      - wp_sessions:/var/lib/php/sessions   # Persist PHP sessions across container restarts
       # Development source bind-mounts (uncomment for live host editing):
       # - ../web/app:/var/www/html/web/app
       # - ../config:/var/www/html/config
@@ -37,11 +57,17 @@ services:
     deploy:
       resources:
         limits:
+          # TIER 1 (512MB VPS): 192M — default
           memory: 192M
+          # TIER 2 (1GB VPS):  384M — uncomment and comment out line above
+          # memory: 384M
+          # TIER 3 (2GB VPS):  768M — uncomment and comment out line above
+          # memory: 768M
           cpus: '1.0'
 
 # ==============================================================================
-# MariaDB Micro-Footprint Service (~60MB RAM)
+# MariaDB — Micro-Footprint (~60MB RAM, Tier 1 default)
+# For Tier 2/3: remove the mariadb-lowram.cnf volume mount below.
 # ==============================================================================
   mariadb:
     image: mariadb:10.11-alpine
@@ -55,17 +81,40 @@ services:
       MYSQL_RANDOM_ROOT_PASSWORD: '1'
     volumes:
       - db_data:/var/lib/mysql
+      # TIER 1: mariadb-lowram.cnf caps RAM at ~60MB. Remove for Tier 2/3.
       - ./mariadb-lowram.cnf:/etc/mysql/conf.d/lowram.cnf:ro
     deploy:
       resources:
         limits:
+          # TIER 1 (512MB VPS): 96M — default
           memory: 96M
+          # TIER 2 (1GB VPS):  384M — uncomment and comment out line above
+          # memory: 384M
+          # TIER 3 (2GB VPS):  768M — uncomment and comment out line above
+          # memory: 768M
           cpus: '0.5'
+
+# ==============================================================================
+# Redis Object Cache — Tier 3 only (2GB VPS)
+# Uncomment this entire service + install wpackagist-plugin/redis-cache plugin.
+# ==============================================================================
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: iz-wp-lite-redis
+  #   restart: unless-stopped
+  #   command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 96M
+  #         cpus: '0.25'
 
 volumes:
   wp_database:
     name: iz_wp_database
   wp_uploads:
     name: iz_wp_uploads
+  wp_sessions:
+    name: iz_wp_sessions    # PHP sessions persist across OOM kills and restarts
   db_data:
     name: iz_wp_mariadb_data

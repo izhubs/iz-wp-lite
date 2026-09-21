@@ -20,6 +20,25 @@
 	}
 	respond @blocked 403
 
+	# Block XML-RPC at network level (belt-and-suspenders with PHP mu-plugin)
+	# WHY: Blocking at Caddy prevents the PHP process from even loading for
+	# XML-RPC brute-force floods, reducing CPU burn under attack.
+	@xmlrpc {
+		path /xmlrpc.php
+	}
+	respond @xmlrpc 403
+
+	# Rate limit wp-login.php: max 5 requests per 10 seconds per IP
+	# WHY: Brute-force login attacks send hundreds of requests/second.
+	# 5 req/10s allows normal login retries while blocking automated floods.
+	# DECISION: Caddy rate_limit vs fail2ban / WHY: Caddy handles it natively
+	# without external daemon. TRADE-OFF: Per-IP only, not per-user.
+	# REF: https://caddyserver.com/docs/caddyfile/directives/rate_limit
+	@wp_login {
+		path /wp/wp-login.php /wp-login.php
+	}
+	rate_limit @wp_login 5r/10s
+
 	# Rewrite legacy /wp-content/* requests to Bedrock /app/*
 	@wp_content {
 		path_regexp wpcontent ^/wp-content/(.*)$

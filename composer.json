@@ -40,9 +40,16 @@
     "wpackagist-plugin/sqlite-database-integration": "^1.8"
   },
   "suggest": {
-    "humanmade/s3-uploads": "Offload media to Cloudflare R2 / S3 with zero server egress bandwidth fee (Run: composer require humanmade/s3-uploads)",
+    "humanmade/s3-uploads": "Offload media to Cloudflare R2 / S3 (Run: composer require humanmade/s3-uploads)",
     "wpackagist-plugin/seo-by-rank-math": "XML sitemaps, JSON-LD schemas and AEO optimization (Run: composer require wpackagist-plugin/seo-by-rank-math)",
-    "wpackagist-plugin/easy-table-of-contents": "Automatic H2/H3 table of contents navigation (Run: composer require wpackagist-plugin/easy-table-of-contents)"
+    "wpackagist-plugin/easy-table-of-contents": "Automatic H2/H3 table of contents (Run: composer require wpackagist-plugin/easy-table-of-contents)",
+    "wpackagist-plugin/akismet": "Comment spam filtering — STRONGLY RECOMMENDED for any public-facing site (Run: composer require wpackagist-plugin/akismet)",
+    "wpackagist-plugin/two-factor": "2FA login protection via TOTP/FIDO2 — STRONGLY RECOMMENDED for admin accounts (Run: composer require wpackagist-plugin/two-factor)",
+    "wpackagist-plugin/wordfence": "Web Application Firewall + malware scanner (Run: composer require wpackagist-plugin/wordfence) — NOTE: high RAM usage ~30MB, not recommended for Tier 1",
+    "wpackagist-plugin/redis-cache": "Redis object cache for Tier 3 (2GB VPS) — requires Redis service in docker-compose.yml (Run: composer require wpackagist-plugin/redis-cache)",
+    "wpackagist-plugin/contact-form-7": "Lightweight contact forms — pair with CF7 Honeypot to block spam (Run: composer require wpackagist-plugin/contact-form-7)",
+    "wpackagist-plugin/cf7-honeypot": "Honeypot anti-spam for Contact Form 7 — zero UX friction, no CAPTCHA (Run: composer require wpackagist-plugin/cf7-honeypot)",
+    "wpackagist-plugin/limit-login-attempts-reloaded": "Block brute-force login attacks by IP lockout (Run: composer require wpackagist-plugin/limit-login-attempts-reloaded)"
   },
   "require-dev": {
     "squizlabs/php_codesniffer": "^3.9",
