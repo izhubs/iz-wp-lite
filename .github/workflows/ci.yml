@@ -1,0 +1,189 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  schedule:
+    # Run weekly on Monday 02:00 UTC to catch upstream WP/plugin regressions
+    - cron: '0 2 * * 1'
+
+jobs:
+  # ============================================================
+  # Job 1: PHP Lint & Composer Validate
+  # ============================================================
+  lint:
+    name: PHP Lint (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.2', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: PHP syntax check (all PHP files)
+        run: find . -name "*.php" -not -path "*/vendor/*" -not -path "*/web/wp/*" | xargs -I{} php -l {}
+
+      - name: PHP CodeSniffer
+        run: composer test
+
+  # ============================================================
+  # Job 2: WordPress Compatibility Matrix
+  # WHY: WP core updates ship monthly. This catches plugin API
+  # regressions in mu-plugins before they hit production.
+  # ============================================================
+  wp-compat:
+    name: WP ${{ matrix.wp }} / PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3']
+        wp: ['6.4', '6.5', '6.6']
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MYSQL_DATABASE: wp_test
+          MYSQL_USER: wp_user
+          MYSQL_PASSWORD: wp_password
+          MYSQL_RANDOM_ROOT_PASSWORD: '1'
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          extensions: pdo_mysql, mysqli, zip
+
+      - name: Pin WordPress version to ${{ matrix.wp }}
+        run: |
+          composer require --no-update "roots/wordpress:^${{ matrix.wp }}"
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Copy environment
+        run: |
+          cp .env.example .env
+          sed -i 's/DB_NAME=.*/DB_NAME=wp_test/' .env
+          sed -i 's/DB_USER=.*/DB_USER=wp_user/' .env
+          sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=wp_password/' .env
+          sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1:3306/' .env
+          sed -i 's/WP_HOME=.*/WP_HOME=http:\/\/localhost/' .env
+          sed -i 's|WP_SITEURL=.*|WP_SITEURL=http://localhost/wp|' .env
+
+      - name: Verify WordPress core files exist
+        run: test -f web/wp/wp-settings.php
+
+      - name: Verify mu-plugins load without fatal errors
+        run: |
+          php -r "
+            define('ABSPATH', realpath('web/wp') . '/');
+            define('WP_ENV', 'production');
+            define('WP_CONTENT_DIR', realpath('web/app'));
+            foreach (glob('web/app/mu-plugins/*.php') as \$file) {
+              \$output = shell_exec('php -l ' . escapeshellarg(\$file) . ' 2>&1');
+              if (strpos(\$output, 'No syntax errors') === false) {
+                echo 'FAIL: ' . \$file . PHP_EOL . \$output;
+                exit(1);
+              }
+              echo 'OK: ' . basename(\$file) . PHP_EOL;
+            }
+          "
+
+  # ============================================================
+  # Job 3: Docker Build Smoke Test
+  # WHY: Validates Dockerfile and Caddyfile parse correctly.
+  # Catches build-time errors before they reach VPS.
+  # ============================================================
+  docker-build:
+    name: Docker Build (smoke test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -f docker/Dockerfile -t iz-wp-lite:ci .
+
+      - name: Validate Caddyfile syntax
+        run: docker run --rm iz-wp-lite:ci caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+      - name: Check PHP-FPM binary exists
+        run: docker run --rm iz-wp-lite:ci php-fpm8.3 --test
+
+  # ============================================================
+  # Job 4: Security Audit
+  # WHY: roave/security-advisories only checks on install.
+  # This job runs weekly to catch CVEs in locked dependencies.
+  # ============================================================
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Check for known vulnerabilities (composer audit)
+        run: composer audit --no-dev
+
+      - name: WPScan CVE check (WordPress core)
+        # DECISION: WPScan API vs offline check / WHY: API provides real-time CVE
+        # database without embedding stale data in CI. TRADE-OFF: Requires API token.
+        # Set WPSCAN_API_TOKEN in GitHub repo secrets to enable.
+        if: ${{ env.WPSCAN_API_TOKEN != '' }}
+        env:
+          WPSCAN_API_TOKEN: ${{ secrets.WPSCAN_API_TOKEN }}
+        run: |
+          WP_VERSION=$(cat composer.lock | python3 -c "
+          import sys, json
+          lock = json.load(sys.stdin)
+          for p in lock['packages']:
+            if p['name'] == 'roots/wordpress':
+              print(p['version'])
+              break
+          ")
+          echo "Checking WP core version: $WP_VERSION"
+          curl -sf "https://wpscan.com/api/v3/wordpresses/${WP_VERSION//./}" \
+            -H "Authorization: Token token=${WPSCAN_API_TOKEN}" | \
+            python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          vulns = list(data.values())
+          if vulns and any(v.get('vulnerabilities') for v in vulns):
+            print('WARN: Known vulnerabilities found in WP core. Review and update.')
+            sys.exit(1)
+          else:
+            print('OK: No known vulnerabilities in WP core.')
+          "

@@ -1,20 +1,26 @@
 {
-  "$schema": "https://izdeploy.izhubs.com/schemas/v1.1/izdeploy.json",
-  "version": "1.1",
+  "$schema": "https://izdeploy.izhubs.com/schemas/v2.0/izdeploy.json",
+  "version": "2.0",
   "project": {
     "name": "iz-wp-lite",
-    "environment": "production"
+    "type": "wordpress",
+    "environment": "production",
+    "php_version": "8.3",
+    "wp_version_constraint": "^6.5"
   },
   "build": {
     "provider": "dockerfile",
     "context": ".",
-    "dockerfile": "docker/Dockerfile"
+    "dockerfile": "docker/Dockerfile",
+    "cache_from": ["type=gha"]
   },
   "services": [
     {
       "name": "web",
       "type": "web",
       "port": 8080,
+      "protocol": "http",
+      "tls": "auto",
       "routes": [
         {
           "domain": "${DOMAIN}",
@@ -24,7 +30,12 @@
       "env": {
         "WP_ENV": "production",
         "WP_HOME": "https://${DOMAIN}",
-        "DB_ENGINE": "sqlite"
+        "WP_SITEURL": "https://${DOMAIN}/wp",
+        "DB_ENGINE": "mysql",
+        "DB_HOST": "mariadb:3306",
+        "DB_NAME": "${DB_NAME}",
+        "DB_USER": "${DB_USER}",
+        "DB_PASSWORD": "${DB_PASSWORD}"
       },
       "secrets": [
         "AUTH_KEY",
@@ -34,31 +45,113 @@
         "AUTH_SALT",
         "SECURE_AUTH_SALT",
         "LOGGED_IN_SALT",
-        "NONCE_SALT"
+        "NONCE_SALT",
+        "DB_NAME",
+        "DB_USER",
+        "DB_PASSWORD"
       ],
       "volumes": [
         {
-          "name": "iz-wp-database",
-          "mount_path": "/var/www/html/web/app/database",
-          "size_limit_mb": 1024
-        },
-        {
           "name": "iz-wp-uploads",
           "mount_path": "/var/www/html/web/app/uploads",
-          "size_limit_mb": 4096
+          "size_limit_mb": 4096,
+          "backup": true
+        },
+        {
+          "name": "iz-wp-sessions",
+          "mount_path": "/var/lib/php/sessions",
+          "size_limit_mb": 64,
+          "backup": false
         }
       ],
       "healthcheck": {
         "type": "http",
-        "path": "/wp/wp-admin/install.php",
+        "path": "/wp/wp-login.php",
+        "expect_status": [200, 302],
         "interval_seconds": 15,
         "timeout_seconds": 5,
-        "retries": 3
+        "retries": 3,
+        "start_period_seconds": 30
       },
       "resources": {
-        "memory_limit_mb": 256,
-        "cpu_quota": 1.0
+        "memory_limit_mb": 192,
+        "memory_request_mb": 96,
+        "cpu_quota": 1.0,
+        "cpu_request": 0.25
+      }
+    },
+    {
+      "name": "mariadb",
+      "type": "database",
+      "image": "mariadb:10.11-alpine",
+      "port": 3306,
+      "protocol": "tcp",
+      "env": {
+        "MYSQL_DATABASE": "${DB_NAME}",
+        "MYSQL_USER": "${DB_USER}",
+        "MYSQL_PASSWORD": "${DB_PASSWORD}",
+        "MYSQL_RANDOM_ROOT_PASSWORD": "1"
+      },
+      "config_files": [
+        {
+          "source": "docker/mariadb-lowram.cnf",
+          "dest": "/etc/mysql/conf.d/lowram.cnf"
+        }
+      ],
+      "volumes": [
+        {
+          "name": "iz-wp-mariadb",
+          "mount_path": "/var/lib/mysql",
+          "size_limit_mb": 2048,
+          "backup": true
+        }
+      ],
+      "healthcheck": {
+        "type": "tcp",
+        "port": 3306,
+        "interval_seconds": 10,
+        "timeout_seconds": 3,
+        "retries": 5
+      },
+      "resources": {
+        "memory_limit_mb": 96,
+        "memory_request_mb": 64,
+        "cpu_quota": 0.5
       }
     }
-  ]
+  ],
+  "deployment": {
+    "strategy": "rolling",
+    "zero_downtime": true,
+    "pre_deploy": [
+      "docker compose -f docker/docker-compose.yml exec -T mariadb mariadb-admin ping --silent"
+    ],
+    "post_deploy": [
+      "docker compose -f docker/docker-compose.yml exec -T app wp --allow-root cache flush"
+    ]
+  },
+  "vps_profiles": {
+    "tier1": {
+      "label": "512MB VPS (Hetzner CX11, ~$4.50/mo)",
+      "app_memory_mb": 192,
+      "mariadb_memory_mb": 96,
+      "mariadb_config": "docker/mariadb-lowram.cnf",
+      "redis": false
+    },
+    "tier2": {
+      "label": "1GB VPS (Hetzner CX21, ~$8/mo)",
+      "app_memory_mb": 384,
+      "mariadb_memory_mb": 384,
+      "mariadb_config": null,
+      "redis": false
+    },
+    "tier3": {
+      "label": "2GB VPS (Hetzner CX31, ~$15/mo)",
+      "app_memory_mb": 768,
+      "mariadb_memory_mb": 768,
+      "mariadb_config": null,
+      "redis": true,
+      "redis_memory_mb": 128
+    }
+  }
 }

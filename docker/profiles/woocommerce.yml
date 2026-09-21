@@ -1,0 +1,70 @@
+version: '3.8'
+
+# ==============================================================================
+# iz-wp-lite WooCommerce Profile — Docker Compose Override
+# Usage: docker compose -f docker/docker-compose.yml -f docker/profiles/woocommerce.yml up -d
+#
+# WHY: WooCommerce is write-heavy (6–12 DB writes per checkout). The default
+# mariadb-lowram.cnf (32MB buffer pool, 25 max_connections) is insufficient
+# for production WooCommerce traffic. This override:
+#   - Removes micro-config constraints
+#   - Raises memory limits to Tier 2 baseline (1GB VPS minimum)
+#   - Enables Redis object cache service
+#   - Sets PHP-FPM to dynamic mode for consistent throughput
+#
+# PREREQUISITE: Run on VPS with at least 1GB RAM (Hetzner CX21 ~$8/mo)
+# Add Redis plugin: composer require wpackagist-plugin/redis-cache
+# ==============================================================================
+
+services:
+  app:
+    environment:
+      WP_ENV: production
+      # Redis object cache — activate after installing wpackagist-plugin/redis-cache
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    deploy:
+      resources:
+        limits:
+          memory: 512M    # WooCommerce PHP processes spike to ~200-300MB under load
+          cpus: '2.0'
+
+  mariadb:
+    # Remove micro-config constraint — use MariaDB defaults (128MB buffer pool)
+    volumes:
+      - db_data:/var/lib/mysql
+      # mariadb-lowram.cnf intentionally NOT mounted here
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-wp_lite}
+      MYSQL_USER: ${DB_USER:-wp_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-wp_secure_password}
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    command: >-
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb_buffer_pool_size=256M
+      --max_connections=100
+      --innodb_flush_log_at_trx_commit=2
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+          cpus: '1.0'
+
+  redis:
+    image: redis:7-alpine
+    container_name: iz-wp-lite-redis
+    restart: unless-stopped
+    command: >-
+      redis-server
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+    deploy:
+      resources:
+        limits:
+          memory: 160M
+          cpus: '0.5'
+
+# Total estimated RAM: app ~512M + mariadb ~384M + redis ~160M = ~1056MB
+# Requires: VPS with 1.5–2GB RAM for OS headroom
