@@ -35,6 +35,18 @@ Visit `http://localhost:8080` to complete WordPress setup.
 
 ---
 
+## Documentation
+
+| Guide | Description |
+|---|---|
+| [Local Development](docs/LOCAL_DEV.md) | SQLite quick mode, MariaDB full stack, WP-CLI, debug, live edit |
+| [Deploy to VPS](docs/DEPLOY_VPS.md) | Bare metal setup on Hetzner/Ubuntu — DNS, SSL, systemd, backup |
+| [Deploy to Coolify](docs/DEPLOY_COOLIFY.md) | Self-hosted PaaS — Git auto-deploy, Traefik SSL, environment vars |
+| [Deploy to izDeploy](docs/DEPLOY_IZDEPLOY.md) | AI-native PaaS — contract-driven deployment, secrets, auto-scale |
+| [Migration Guide](MIGRATION.md) | Move existing WordPress site to iz-wp-lite (10 steps + rollback) |
+
+---
+
 ## Why?
 
 Traditional WordPress on a \$4–5/month VPS crashes because default MySQL alone consumes 300–450MB RAM. Managed hosts (WP Engine, Kinsta) solve this but cost \$25–\$290/month per site.
