@@ -1,0 +1,30 @@
+[mysqld]
+# Micro-footprint configuration for 512MB RAM VPS instances
+# Target RAM consumption: ~55MB - 65MB
+
+# InnoDB Buffer Pool: allocate strictly 32MB
+innodb_buffer_pool_size = 32M
+innodb_log_buffer_size = 4M
+innodb_log_file_size = 16M
+
+# Concurrency & Connection limits
+max_connections = 25
+max_user_connections = 20
+thread_cache_size = 4
+table_open_cache = 400
+table_definition_cache = 400
+
+# Memory buffers per connection (keep minimal)
+sort_buffer_size = 256K
+read_buffer_size = 256K
+read_rnd_buffer_size = 256K
+join_buffer_size = 256K
+net_buffer_length = 8K
+
+# Disable heavy features to save memory
+performance_schema = OFF
+innodb_stats_on_metadata = OFF
+query_cache_type = 0
+query_cache_size = 0
+skip-name-resolve
+skip-log-bin
