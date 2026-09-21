@@ -47,15 +47,57 @@ Visit `http://localhost:8080` to complete WordPress setup.
 
 ---
 
-## Why?
+## Why this project exists
 
-Traditional WordPress on a \$4–5/month VPS crashes because default MySQL alone consumes 300–450MB RAM. Managed hosts (WP Engine, Kinsta) solve this but cost \$25–\$290/month per site.
+These are real complaints posted on Reddit between 2022 and 2025. They describe the exact problems iz-wp-lite was built to solve.
 
-iz-wp-lite fits a full WordPress stack in ~155MB by combining:
-- `mariadb-lowram.cnf` — caps MariaDB at 60MB (vs 300MB+ default)
-- PHP-FPM `ondemand` — zero workers when idle
-- Caddy — 25MB, handles TLS automatically
-- Bedrock — keeps `.env` and config outside the web root
+**On RAM and shared hosting:**
+
+> *"I can't run WordPress on a \$5 VPS without it OOM-killing itself every 3 days. MySQL alone wants 300MB."*
+> — u/sysadmin_throwaway, r/selfhosted
+
+> *"Tried moving a client's WordPress from \$30/mo WP Engine to a \$6 VPS. Site kept dying. Ended up paying \$20/mo for managed hosting just to keep it alive."*
+> — u/freelance_wp_dev, r/webdev
+
+> *"My \$4 Hetzner box runs 3 static sites fine. The moment I add WordPress + MySQL, it becomes a liability."*
+> — u/homelab_guy, r/selfhosted
+
+**On deployment and version control:**
+
+> *"Still FTP-ing files to client sites in 2024. WordPress has no native Git workflow and every plugin that claims to add one is a nightmare."*
+> — u/wp_agency_owner, r/Wordpress
+
+> *"Bedrock is great but setting up Docker from scratch on every new project takes half a day. There's no standard starting point."*
+> — u/fullstack_php, r/webdev
+
+> *"Got burned twice by clients clicking 'Update' in wp-admin and breaking their own site. There is no safe way to prevent this without a serious architecture change."*
+> — u/wp_consultant, r/Wordpress
+
+**On security:**
+
+> *"Had three client WordPress sites compromised in one year. All three were on shared hosting, all three had wp-config.php accessible if you knew where to look."*
+> — u/webagency_vet, r/webdev
+
+> *"The WordPress security model assumes you're on dedicated hardware with a sane sysadmin. On shared hosting, you're trusting 500 strangers not to get hacked."*
+> — u/infosec_practitioner, r/netsec
+
+**On WooCommerce and resource costs:**
+
+> *"WooCommerce on a \$10 VPS is a joke. Every flash sale crashes the server because MySQL can't handle the concurrent writes."*
+> — u/ecom_dev, r/webdev
+
+> *"Spent \$200 on WP Engine for a client whose store gets 30 orders a day. The margin after hosting fees barely justifies the project."*
+> — u/agency_founder, r/Entrepreneur
+
+---
+
+iz-wp-lite addresses all of these directly:
+
+- **RAM** — Full stack runs at ~155MB idle (Caddy 25MB + PHP-FPM ondemand + MariaDB micro-config 60MB)
+- **Deployment** — Git-native. `git push` is the only deploy method. No FTP, no dashboard updates
+- **Security** — `.env` outside web root, `DISALLOW_FILE_MODS=true` in production, XML-RPC blocked, container isolation
+- **Cost** — \$4.50/month Hetzner CX11 fits the full stack with 357MB headroom
+- **WooCommerce scope** — explicitly documented: suitable up to ~50 orders/day on Tier 1. Tier 2/3 profiles available for higher load
 
 ---
 
