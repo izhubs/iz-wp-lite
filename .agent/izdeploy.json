@@ -1,0 +1,64 @@
+{
+  "$schema": "https://izdeploy.izhubs.com/schemas/v1.1/izdeploy.json",
+  "version": "1.1",
+  "project": {
+    "name": "iz-wp-lite",
+    "environment": "production"
+  },
+  "build": {
+    "provider": "dockerfile",
+    "context": ".",
+    "dockerfile": "docker/Dockerfile"
+  },
+  "services": [
+    {
+      "name": "web",
+      "type": "web",
+      "port": 8080,
+      "routes": [
+        {
+          "domain": "${DOMAIN}",
+          "tls": "auto"
+        }
+      ],
+      "env": {
+        "WP_ENV": "production",
+        "WP_HOME": "https://${DOMAIN}",
+        "DB_ENGINE": "sqlite"
+      },
+      "secrets": [
+        "AUTH_KEY",
+        "SECURE_AUTH_KEY",
+        "LOGGED_IN_KEY",
+        "NONCE_KEY",
+        "AUTH_SALT",
+        "SECURE_AUTH_SALT",
+        "LOGGED_IN_SALT",
+        "NONCE_SALT"
+      ],
+      "volumes": [
+        {
+          "name": "iz-wp-database",
+          "mount_path": "/var/www/html/web/app/database",
+          "size_limit_mb": 1024
+        },
+        {
+          "name": "iz-wp-uploads",
+          "mount_path": "/var/www/html/web/app/uploads",
+          "size_limit_mb": 4096
+        }
+      ],
+      "healthcheck": {
+        "type": "http",
+        "path": "/wp/wp-admin/install.php",
+        "interval_seconds": 15,
+        "timeout_seconds": 5,
+        "retries": 3
+      },
+      "resources": {
+        "memory_limit_mb": 256,
+        "cpu_quota": 1.0
+      }
+    }
+  ]
+}

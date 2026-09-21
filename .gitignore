@@ -1,0 +1,23 @@
+# Environment & credentials
+.env
+.env.*
+!.env.example
+
+# Composer dependencies & WordPress Core
+/vendor/
+/web/wp/
+
+# WordPress mutable directories
+/web/app/uploads/*
+!/web/app/uploads/.gitkeep
+/web/app/database/*
+!/web/app/database/.gitkeep
+/web/app/plugins/*
+!/web/app/plugins/.gitkeep
+
+# IDE and OS artifacts
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/

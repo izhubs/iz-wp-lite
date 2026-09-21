@@ -1,0 +1,67 @@
+version: '3.8'
+
+# ==============================================================================
+# iz-wp-lite Docker Compose Configuration
+# Default mode: Single-container SQLite (baseline memory: ~45MB RAM)
+# ==============================================================================
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: iz-wp-lite-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      WP_ENV: ${WP_ENV:-development}
+      WP_HOME: ${WP_HOME:-http://localhost:8080}
+      WP_SITEURL: ${WP_SITEURL:-http://localhost:8080/wp}
+      DB_ENGINE: ${DB_ENGINE:-sqlite}
+      DB_DIR: ${DB_DIR:-/var/www/html/web/app/database}
+      DB_FILE: ${DB_FILE:-.ht.sqlite}
+      # MariaDB credentials (uncomment when switching to DB_ENGINE=mysql)
+      # DB_NAME: ${DB_NAME:-wp_lite}
+      # DB_USER: ${DB_USER:-wp_user}
+      # DB_PASSWORD: ${DB_PASSWORD:-wp_secure_password}
+      # DB_HOST: mariadb:3306
+    volumes:
+      - wp_database:/var/www/html/web/app/database
+      - wp_uploads:/var/www/html/web/app/uploads
+      # Development source bind-mounts (uncomment for live host editing):
+      # - ../web/app:/var/www/html/web/app
+      # - ../config:/var/www/html/config
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '1.0'
+
+# ==============================================================================
+# MariaDB Fallback Service (Uncomment when switching to DB_ENGINE=mysql)
+# ==============================================================================
+#  mariadb:
+#    image: mariadb:10.11-alpine
+#    container_name: iz-wp-lite-db
+#    restart: unless-stopped
+#    environment:
+#      MYSQL_DATABASE: ${DB_NAME:-wp_lite}
+#      MYSQL_USER: ${DB_USER:-wp_user}
+#      MYSQL_PASSWORD: ${DB_PASSWORD:-wp_secure_password}
+#      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+#    volumes:
+#      - db_data:/var/lib/mysql
+#    deploy:
+#      resources:
+#        limits:
+#          memory: 192M
+#          cpus: '0.5'
+
+volumes:
+  wp_database:
+    name: iz_wp_database
+  wp_uploads:
+    name: iz_wp_uploads
+#  db_data:
+#    name: iz_wp_mariadb_data

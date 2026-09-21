@@ -1,0 +1,56 @@
+{
+	admin off
+	auto_https off
+}
+
+:8080 {
+	root * /var/www/html/web
+	encode gzip zstd
+
+	# Security: block dotfiles, environment configurations, and database files
+	@blocked {
+		path */.*
+		path *.env*
+		path /config/*
+		path /vendor/*
+		path *.sqlite*
+		path *.sqlite3*
+		path *.db*
+		path /app/database/*
+	}
+	respond @blocked 403
+
+	# Rewrite legacy /wp-content/* requests to Bedrock /app/*
+	@wp_content {
+		path_regexp wpcontent ^/wp-content/(.*)$
+	}
+	rewrite @wp_content /app/{re.wpcontent.1}
+
+	# Forward PHP requests to PHP-FPM on port 9000
+	php_fastcgi 127.0.0.1:9000 {
+		index index.php
+		env SERVER_PORT 8080
+	}
+
+	# Serve static files from document root
+	file_server
+
+	# Cache headers for static assets
+	@static {
+		path *.css *.js *.ico *.gif *.jpg *.jpeg *.png *.svg *.woff *.woff2 *.webp *.avif
+	}
+	header @static Cache-Control "public, max-age=31536000, immutable"
+
+	# Security headers
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	log {
+		output stdout
+		format console
+		level INFO
+	}
+}

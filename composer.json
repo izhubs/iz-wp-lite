@@ -1,0 +1,75 @@
+{
+  "name": "izhubs/iz-wp-lite",
+  "type": "project",
+  "license": "MIT",
+  "description": "Ultra-lightweight 12-Factor WordPress starter with dual-engine SQLite/MariaDB, Caddy, and Docker multi-stage build.",
+  "homepage": "https://github.com/izhubs/iz-wp-lite",
+  "authors": [
+    {
+      "name": "iZdigi Systems Team",
+      "email": "contact@izdigi.com",
+      "homepage": "https://izdigi.com"
+    }
+  ],
+  "keywords": [
+    "wordpress",
+    "bedrock",
+    "sqlite",
+    "caddy",
+    "docker",
+    "lightweight",
+    "12-factor"
+  ],
+  "support": {
+    "issues": "https://github.com/izhubs/iz-wp-lite/issues"
+  },
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://wpackagist.org"
+    }
+  ],
+  "require": {
+    "php": "^8.1 || ^8.2 || ^8.3",
+    "composer/installers": "^2.2",
+    "vlucas/phpdotenv": "^5.5",
+    "oscarotero/env": "^2.1",
+    "roots/wordpress": "^6.5",
+    "roots/wp-config": "^1.0",
+    "roots/wp-password-bcrypt": "^1.1",
+    "wpackagist-plugin/sqlite-database-integration": "^1.8",
+    "humanmade/s3-uploads": "^3.0",
+    "wpackagist-plugin/seo-by-rank-math": "^1.0",
+    "wpackagist-plugin/easy-table-of-contents": "^2.0"
+  },
+  "require-dev": {
+    "squizlabs/php_codesniffer": "^3.9",
+    "roave/security-advisories": "dev-latest"
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "preferred-install": "dist",
+    "sort-packages": true,
+    "allow-plugins": {
+      "composer/installers": true,
+      "roots/wordpress-core-installer": true
+    }
+  },
+  "extra": {
+    "installer-paths": {
+      "web/app/mu-plugins/{$name}/": [
+        "type:wordpress-muplugin"
+      ],
+      "web/app/plugins/{$name}/": [
+        "type:wordpress-plugin"
+      ],
+      "web/app/themes/{$name}/": [
+        "type:wordpress-theme"
+      ]
+    },
+    "wordpress-install-dir": "web/wp"
+  },
+  "scripts": {
+    "test": "phpcs"
+  }
+}
