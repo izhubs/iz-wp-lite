@@ -37,10 +37,12 @@
     "roots/wordpress": "^6.5",
     "roots/wp-config": "^1.0",
     "roots/wp-password-bcrypt": "^1.1",
-    "wpackagist-plugin/sqlite-database-integration": "^1.8",
-    "humanmade/s3-uploads": "^3.0",
-    "wpackagist-plugin/seo-by-rank-math": "^1.0",
-    "wpackagist-plugin/easy-table-of-contents": "^2.0"
+    "wpackagist-plugin/sqlite-database-integration": "^1.8"
+  },
+  "suggest": {
+    "humanmade/s3-uploads": "Offload media to Cloudflare R2 / S3 with zero server egress bandwidth fee (Run: composer require humanmade/s3-uploads)",
+    "wpackagist-plugin/seo-by-rank-math": "XML sitemaps, JSON-LD schemas and AEO optimization (Run: composer require wpackagist-plugin/seo-by-rank-math)",
+    "wpackagist-plugin/easy-table-of-contents": "Automatic H2/H3 table of contents navigation (Run: composer require wpackagist-plugin/easy-table-of-contents)"
   },
   "require-dev": {
     "squizlabs/php_codesniffer": "^3.9",
