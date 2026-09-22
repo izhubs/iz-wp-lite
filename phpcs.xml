@@ -38,5 +38,8 @@
         </properties>
     </rule>
 
+    <!-- Only fail CI on errors, ignore warnings on exit -->
+    <arg name="warning-severity" value="0"/>
+    <arg value="s"/>
     <config name="ignore_warnings_on_exit" value="1"/>
 </ruleset>

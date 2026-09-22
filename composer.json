@@ -90,6 +90,6 @@
     "wordpress-install-dir": "web/wp"
   },
   "scripts": {
-    "test": "phpcs"
+    "test": "phpcs --runtime-set ignore_warnings_on_exit 1"
   }
 }

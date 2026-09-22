@@ -22,7 +22,8 @@ if (!defined('ABSPATH')) {
  *
  * @return void
  */
-function iz_wp_lite_auto_activate_default_plugins(): void {
+function iz_wp_lite_auto_activate_default_plugins(): void
+{
     // Only run in admin or CLI context to save frontend request cycles
     if (!is_admin() && (!defined('WP_CLI') || !WP_CLI)) {
         return;

@@ -27,7 +27,8 @@ if (!defined('ABSPATH')) {
  * @return void
  * @ai-constraint Runs on muplugins_loaded to ensure early database optimization.
  */
-function iz_wp_lite_bootstrap_sqlite(): void {
+function iz_wp_lite_bootstrap_sqlite(): void
+{
     if (!defined('DB_ENGINE') || DB_ENGINE !== 'sqlite') {
         return;
     }
@@ -85,7 +86,8 @@ add_action('muplugins_loaded', 'iz_wp_lite_bootstrap_sqlite', 1);
  * @return void
  * @ai-constraint Strictly visible only to administrators.
  */
-function iz_wp_lite_admin_bar_badge($wp_admin_bar): void {
+function iz_wp_lite_admin_bar_badge($wp_admin_bar): void
+{
     if (!current_user_can('manage_options')) {
         return;
     }
