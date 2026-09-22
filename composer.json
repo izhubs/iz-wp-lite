@@ -25,6 +25,18 @@
   },
   "repositories": [
     {
+      "type": "package",
+      "package": {
+        "name": "wpackagist-plugin/sqlite-database-integration",
+        "version": "2.1.16",
+        "type": "wordpress-plugin",
+        "dist": {
+          "url": "https://downloads.wordpress.org/plugin/sqlite-database-integration.2.1.16.zip",
+          "type": "zip"
+        }
+      }
+    },
+    {
       "type": "composer",
       "url": "https://wpackagist.org"
     }
@@ -37,7 +49,7 @@
     "roots/wordpress": "^6.5",
     "roots/wp-config": "^1.0",
     "roots/wp-password-bcrypt": "^1.1",
-    "wpackagist-plugin/sqlite-database-integration": "^1.8"
+    "wpackagist-plugin/sqlite-database-integration": "^1.8 || ^2.0"
   },
   "suggest": {
     "humanmade/s3-uploads": "Offload media to Cloudflare R2 / S3 (Run: composer require humanmade/s3-uploads)",
@@ -52,8 +64,7 @@
     "wpackagist-plugin/limit-login-attempts-reloaded": "Block brute-force login attacks by IP lockout (Run: composer require wpackagist-plugin/limit-login-attempts-reloaded)"
   },
   "require-dev": {
-    "squizlabs/php_codesniffer": "^3.9",
-    "roave/security-advisories": "dev-latest"
+    "squizlabs/php_codesniffer": "^3.9"
   },
   "config": {
     "optimize-autoloader": true,
