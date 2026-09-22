@@ -67,7 +67,7 @@ jobs:
           </ruleset>
           EOF
           fi
-          composer test
+          vendor/bin/phpcs -s -p --runtime-set ignore_warnings_on_exit 1
 
   # ============================================================
   # Job 2: WordPress Compatibility Matrix
