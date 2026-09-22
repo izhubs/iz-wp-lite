@@ -1,0 +1,8 @@
+# Force LF for shell scripts and Docker files — required for Linux container execution
+*.sh        eol=lf
+Dockerfile  eol=lf
+Caddyfile   eol=lf
+*.conf      eol=lf
+
+# Auto-detect text files, normalize to LF in repo
+*           text=auto
