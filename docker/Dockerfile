@@ -6,16 +6,14 @@ FROM composer:2 AS builder
 WORKDIR /app
 
 # Copy dependency definitions
-COPY composer.json ./
+COPY composer.json composer.lock* ./
 
-# Install dependencies (ignoring platform reqs for build stage portability)
-RUN composer install \
-    --no-dev \
-    --no-interaction \
-    --prefer-dist \
-    --optimize-autoloader \
-    --no-scripts \
-    --ignore-platform-reqs
+# Install dependencies (fallback to update if lockfile is missing)
+RUN if [ -f composer.lock ]; then \
+        composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts --ignore-platform-reqs; \
+    else \
+        composer update --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts --ignore-platform-reqs; \
+    fi
 
 # ==============================================================================
 # Stage 2: Ultra-lightweight Runtime (PHP 8.3 FPM + Caddy on Alpine)
@@ -74,9 +72,10 @@ COPY docker/Caddyfile /etc/caddy/Caddyfile
 # Copy composer vendor dependencies from builder stage
 COPY --from=builder /app/vendor /var/www/html/vendor
 
-# Copy application source files
+# Copy application source files and WordPress core from builder
 COPY config /var/www/html/config
 COPY web /var/www/html/web
+COPY --from=builder /app/web /var/www/html/web
 COPY composer.json /var/www/html/composer.json
 COPY .env.example /var/www/html/.env.example
 

@@ -31,7 +31,12 @@ jobs:
         run: composer validate --strict
 
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+        run: |
+          if [ -f composer.lock ]; then
+            composer install --no-interaction --prefer-dist --no-progress
+          else
+            composer update --no-interaction --prefer-dist --no-progress
+          fi
 
       - name: PHP syntax check (all project PHP files)
         # WHY: xargs -I{} fails when find returns 0 results. Use + form instead.
@@ -106,7 +111,7 @@ jobs:
           composer require --no-update "roots/wordpress:^${{ matrix.wp }}"
 
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+        run: composer update --no-interaction --prefer-dist --no-progress
 
       - name: Copy and patch environment for CI
         run: |
@@ -168,7 +173,12 @@ jobs:
           tools: composer:v2
 
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+        run: |
+          if [ -f composer.lock ]; then
+            composer install --no-interaction --prefer-dist --no-progress
+          else
+            composer update --no-interaction --prefer-dist --no-progress
+          fi
 
       - name: Check for known vulnerabilities (composer audit)
         run: composer audit --no-dev
