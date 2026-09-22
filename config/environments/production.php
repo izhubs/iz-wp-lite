@@ -22,7 +22,7 @@ use function Env\env;
 // REF: u/devops_medic r/selfhosted 2024 — confirmed fix for WP redirect loop.
 // =============================================================================
 if (
-    isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] )
+    isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
     && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https'
 ) {
     $_SERVER['HTTPS'] = 'on';

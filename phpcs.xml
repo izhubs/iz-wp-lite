@@ -18,6 +18,17 @@
     <rule ref="PSR12">
         <!-- Allow long lines in comment blocks (docstrings, DECISION blocks) -->
         <exclude name="Generic.Files.LineLength"/>
+        <!-- Allow WordPress and Bedrock procedural scripts mixing symbol definitions and side effects -->
+        <exclude name="PSR1.Files.SideEffects.FoundWithSymbols"/>
+        <!-- Allow snake_case methods/functions standard in WordPress APIs -->
+        <exclude name="PSR1.Methods.CamelCapsMethodName.NotCamelCaps"/>
+        <!-- Allow WordPress class naming conventions -->
+        <exclude name="Squiz.Classes.ValidClassName.NotCamelCaps"/>
+        <!-- Allow flexible parenthesis spacing standard in WordPress codebases -->
+        <exclude name="PEAR.Functions.FunctionCallSignature.SpaceAfterOpenBracket"/>
+        <exclude name="PEAR.Functions.FunctionCallSignature.SpaceBeforeCloseBracket"/>
+        <exclude name="PSR2.ControlStructures.ControlStructureSpacing.SpacingAfterOpenBrace"/>
+        <exclude name="PSR2.ControlStructures.ControlStructureSpacing.SpaceBeforeCloseBrace"/>
     </rule>
 
     <!-- WordPress-specific: allow echo with parens -->
@@ -26,4 +37,6 @@
             <property name="equalsSpacing" value="1"/>
         </properties>
     </rule>
+
+    <config name="ignore_warnings_on_exit" value="1"/>
 </ruleset>

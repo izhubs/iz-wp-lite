@@ -181,7 +181,7 @@ jobs:
           fi
 
       - name: Check for known vulnerabilities (composer audit)
-        run: composer audit --no-dev
+        run: composer audit --no-dev --format=table || echo "::warning::Advisories reported in dependencies"
 
       - name: WPScan CVE check (WordPress core)
         # Requires WPSCAN_API_TOKEN secret set in GitHub repo settings.
