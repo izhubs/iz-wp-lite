@@ -176,10 +176,13 @@ jobs:
       - name: WPScan CVE check (WordPress core)
         # Requires WPSCAN_API_TOKEN secret set in GitHub repo settings.
         # Skip silently if token is not configured.
-        if: ${{ secrets.WPSCAN_API_TOKEN != '' }}
         env:
           WPSCAN_API_TOKEN: ${{ secrets.WPSCAN_API_TOKEN }}
         run: |
+          if [ -z "${WPSCAN_API_TOKEN}" ]; then
+            echo "Notice: WPSCAN_API_TOKEN is not configured. Skipping WPScan CVE check."
+            exit 0
+          fi
           WP_VERSION=$(python3 -c "
           import json, sys
           with open('composer.lock') as f:
