@@ -34,3 +34,6 @@ Thumbs.db
 
 # CI artifacts
 /.phpcs-cache
+
+# PocketBase data
+pb_data/

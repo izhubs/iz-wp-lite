@@ -45,6 +45,8 @@ RUN apk add --no-cache \
         intl \
         exif
 
+ADD --chmod=0755 https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar /usr/local/bin/wp
+
 # Configure PHP-FPM for VPS 512MB RAM footprint (ondemand, max_children=3)
 RUN echo "[www]" > /usr/local/etc/php-fpm.d/zz-docker-lowram.conf \
     && echo "listen = 127.0.0.1:9000" >> /usr/local/etc/php-fpm.d/zz-docker-lowram.conf \

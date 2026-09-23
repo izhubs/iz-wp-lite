@@ -9,14 +9,7 @@
 
 	# Security: block dotfiles, environment configurations, and database files
 	@blocked {
-		path */.*
-		path *.env*
-		path /config/*
-		path /vendor/*
-		path *.sqlite*
-		path *.sqlite3*
-		path *.db*
-		path /app/database/*
+		path */.* *.env* /config/* /vendor/* *.sqlite* *.sqlite3* *.db* /app/database/*
 	}
 	respond @blocked 403
 
@@ -60,7 +53,7 @@
 		not path_regexp ^/(wp-admin|wp-login\.php)
 		not header Cookie "*wordpress_logged_in*"
 		file {
-			try_files /app/cache/page_cache/{uri}/index.html /app/cache/cache-enabler/{host}{uri}/index.html
+			try_files /app/cache/page_cache/{path}/index.html /app/cache/cache-enabler/{host}{path}/index.html
 		}
 	}
 	rewrite @cached_page {http.matchers.file.relative}
