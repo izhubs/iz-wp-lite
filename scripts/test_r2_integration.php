@@ -31,29 +31,23 @@ assert_test(class_exists('\IzHubs\R2Media\Core\SigV4Signer'), 'Core SigV4Signer 
 assert_test(class_exists('\IzHubs\R2Media\Core\R2Client'), 'Core R2Client class exists');
 assert_test(class_exists('\IzHubs\R2MediaPro\Plugin'), 'Pro Plugin class exists');
 assert_test(class_exists('\IzHubs\R2MediaPro\EdgeResizing'), 'Pro EdgeResizing class exists');
-assert_test(class_exists('\IzHubs\R2MediaPro\ProtectedVault'), 'Pro ProtectedVault class exists');
+assert_test(class_exists('\IzHubs\R2MediaPro\WooCommerce\ProtectedVault'), 'Pro WooCommerce ProtectedVault class exists');
 assert_test(class_exists('\IzHubs\R2MediaPro\Cli\SyncCommand'), 'Pro SyncCommand class exists');
 
 // 2. Test SigV4 Signer
 echo "\n▶ 2. SigV4 Signer Cryptographic Vector Verification\n";
-$credentials = [
-    'access_key' => 'AKIAIOSFODNN7EXAMPLE',
-    'secret_key' => 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-    'region'     => 'auto',
-    'service'    => 's3',
-];
-$signer = new \IzHubs\R2Media\Core\SigV4Signer(
-    $credentials['access_key'],
-    $credentials['secret_key'],
-    $credentials['region'],
-    $credentials['service']
-);
+$access_key = 'AKIAIOSFODNN7EXAMPLE';
+$secret_key = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY';
 
-$headers = $signer->sign(
+$headers = \IzHubs\R2Media\Core\SigV4Signer::signRequest(
     'GET',
-    'https://examplebucket.r2.cloudflarestorage.com/test.txt',
+    'examplebucket.r2.cloudflarestorage.com',
+    '/test.txt',
     [],
     '',
+    $access_key,
+    $secret_key,
+    'auto',
     1369353600 // Fixed timestamp: 2013-05-24T00:00:00Z
 );
 
@@ -63,9 +57,13 @@ assert_test(str_contains($headers['Authorization'], 'Credential=AKIAIOSFODNN7EXA
 
 // 3. Test Presigned URL Generation
 echo "\n▶ 3. Presigned URL Generation (WooCommerce Protected Vault)\n";
-$presigned = $signer->generate_presigned_url(
+$presigned = \IzHubs\R2Media\Core\SigV4Signer::createPresignedUrl(
     'GET',
-    'https://examplebucket.r2.cloudflarestorage.com/downloads/ebook.pdf',
+    'examplebucket.r2.cloudflarestorage.com',
+    '/downloads/ebook.pdf',
+    $access_key,
+    $secret_key,
+    'auto',
     120, // 120s TTL
     ['response-content-disposition' => 'attachment; filename="ebook.pdf"'],
     1369353600
