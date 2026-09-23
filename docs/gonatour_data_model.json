@@ -1,0 +1,1122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "meta": {
+    "title": "Gonatour Tour Engine Data Model & Booking Schema",
+    "description": "Standardized schema reverse-engineered from gonatour.vn for WordPress tour engine implementation (iz-wp-lite).",
+    "version": "1.0.0",
+    "source": "https://gonatour.vn",
+    "inspected_endpoints": [
+      "https://gonatour.vn/tour-du-lich-nha-trang-GNT4NHV-GNT4NHV-0112.html",
+      "https://gonatour.vn/tour-thai-lan-1774248263-TL5NTAL-3009.html",
+      "https://gonatour.vn/tour/ajax/add_cart.html",
+      "https://gonatour.vn/tour/shopping/cart.html",
+      "https://gonatour.vn/tour/ajax/info_guets.html"
+    ],
+    "created_at": "2026-09-23T21:58:00+07:00",
+    "author": "Tour Data Architect"
+  },
+  "schema": {
+    "header_identity": {
+      "title": {
+        "type": "string",
+        "required": true,
+        "description": "Public tour title displayed on catalog and single tour view."
+      },
+      "tour_code": {
+        "type": "string",
+        "required": true,
+        "description": "Internal business SKU / Tour code identifying route and variant (e.g., GNT4NHV-0112)."
+      },
+      "slug": {
+        "type": "string",
+        "required": true,
+        "description": "URL slug for SEO permalink."
+      },
+      "market_type": {
+        "type": "integer",
+        "enum": [
+          1,
+          2
+        ],
+        "description": "Market classification: 1 = Domestic (Tour trong nước), 2 = Outbound/International (Tour nước ngoài)."
+      },
+      "duration": {
+        "type": "object",
+        "required": true,
+        "properties": {
+          "days": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Total duration in days."
+          },
+          "nights": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total duration in nights."
+          },
+          "label": {
+            "type": "string",
+            "description": "Formatted duration string (e.g., '4N3D', '5N4D')."
+          }
+        }
+      },
+      "departure_point": {
+        "type": "string",
+        "required": true,
+        "description": "Origin city or gathering terminal (e.g., 'TP. Hồ Chí Minh', 'Hà Nội')."
+      },
+      "destination": {
+        "type": "object",
+        "required": true,
+        "properties": {
+          "primary": {
+            "type": "string",
+            "description": "Main destination city or region."
+          },
+          "country": {
+            "type": "string",
+            "description": "Destination country (Vietnam, Thailand, Japan, etc.)."
+          },
+          "route": {
+            "type": "string",
+            "description": "Full itinerary route summary (e.g., 'Bangkok - Pattaya')."
+          }
+        }
+      },
+      "transportation": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "bus",
+            "airplane",
+            "speedboat",
+            "train",
+            "cable_car"
+          ]
+        },
+        "description": "Transport vehicles used throughout the tour."
+      },
+      "hotel_rating": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "2_star",
+            "3_star",
+            "4_star",
+            "5_star",
+            "resort"
+          ]
+        },
+        "description": "Accommodation standards provided."
+      },
+      "tour_categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Taxonomy tags (e.g., 'Du lịch Khám phá', 'Du lịch Tham Quan', 'Du lịch sinh thái')."
+      },
+      "age_range": {
+        "type": "object",
+        "properties": {
+          "min_age": {
+            "type": "integer",
+            "default": 2
+          },
+          "max_age_online": {
+            "type": "integer",
+            "default": 69,
+            "description": "Passengers >= 70 must book in-person."
+          }
+        }
+      }
+    },
+    "pricing_matrix": {
+      "currency": {
+        "type": "string",
+        "default": "VND",
+        "symbol": "đ"
+      },
+      "age_tiers": {
+        "adult": {
+          "label": "Người lớn",
+          "age_rule": "Từ 12 tuổi trở lên",
+          "min_age": 12,
+          "default_factor": 1.0
+        },
+        "child": {
+          "label": "Trẻ em",
+          "age_rule": "Từ 2 tuổi đến dưới 12 tuổi",
+          "min_age": 2,
+          "max_age": 11,
+          "bedding": "Ngủ chung giường với 2 người lớn (nếu kê giường phụ tính giá người lớn)"
+        },
+        "infant": {
+          "label": "Em bé",
+          "age_rule": "Dưới 2 tuổi",
+          "min_age": 0,
+          "max_age": 1,
+          "bedding": "Ngủ chung bố mẹ, tự túc các chi phí phát sinh"
+        }
+      },
+      "price_components": {
+        "base_price": {
+          "adult": {
+            "type": "number",
+            "description": "Base price for adult."
+          },
+          "child": {
+            "type": "number",
+            "description": "Base price for child."
+          },
+          "infant": {
+            "type": "number",
+            "description": "Base price for infant."
+          }
+        },
+        "fuel_airline_insurance_surcharge": {
+          "param": "price_air",
+          "type": "number",
+          "description": "Fuel surcharge & airline insurance for flight tours."
+        },
+        "airport_tax": {
+          "param": "price_airport",
+          "type": "number",
+          "description": "Airport security and terminal taxes."
+        },
+        "visa_surcharge": {
+          "param": "price_visa",
+          "type": "number",
+          "description": "Visa application processing fee if applicable."
+        },
+        "single_room_supplement": {
+          "param": "price_single_room",
+          "type": "number",
+          "description": "Mandatory surcharge when passenger occupies a single room."
+        },
+        "tipping_policy": {
+          "type": "object",
+          "properties": {
+            "amount_vnd": {
+              "type": "number"
+            },
+            "amount_usd": {
+              "type": "number"
+            },
+            "per_unit": {
+              "type": "string",
+              "enum": [
+                "day",
+                "tour"
+              ]
+            },
+            "description": {
+              "type": "string"
+            }
+          }
+        },
+        "nationality_surcharges": {
+          "type": "array",
+          "items": {
+            "properties": {
+              "nationality": {
+                "type": "string"
+              },
+              "amount_vnd": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "calculation_formula": {
+        "domestic": "total = (adult * adult_price) + (children * child_price) + (infant * infant_price) + (single_room_count * price_single_room) - total_discount",
+        "international": "adult_price = base_price + price_schge_visa + price_air + price_airport + price_visa; child_price = base_child + price_schge_visa + price_air_child + price_airport_child + price_visa_child; infant_price = base_infant + price_schge_visa + price_air_infant + price_airport_infant + price_visa_infant; total = (adult * adult_price) + (children * child_price) + (infant * infant_price) + (single_room_count * price_single_room) - total_discount"
+      }
+    },
+    "schedule_availability": {
+      "departure_item": {
+        "departure_id": {
+          "type": "integer",
+          "description": "Unique departure schedule ID (e.g., pid 3871)."
+        },
+        "departure_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Start date (YYYY-MM-DD or DD/MM/YYYY)."
+        },
+        "return_date": {
+          "type": "string",
+          "format": "date",
+          "description": "End date (YYYY-MM-DD or DD/MM/YYYY)."
+        },
+        "day_of_week": {
+          "type": "string",
+          "description": "Day of week (Thứ 2 - Chủ nhật)."
+        },
+        "duration_days": {
+          "type": "integer",
+          "description": "Number of days for this departure."
+        },
+        "max_seats": {
+          "type": "integer",
+          "description": "Total seat allocation."
+        },
+        "remaining_seats": {
+          "type": "integer",
+          "description": "Inventory remaining (Số chỗ còn nhận)."
+        },
+        "min_pax_guarantee": {
+          "type": "integer",
+          "default": 9,
+          "description": "Minimum adult passengers required to guarantee departure."
+        },
+        "flight_schedule": {
+          "type": "object",
+          "properties": {
+            "outbound": {
+              "type": "string",
+              "description": "Airline, flight code, route, times."
+            },
+            "inbound": {
+              "type": "string",
+              "description": "Airline, flight code, route, times."
+            }
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "available",
+            "limited",
+            "guaranteed",
+            "sold_out",
+            "canceled"
+          ]
+        }
+      }
+    },
+    "highlights_itinerary": {
+      "highlights": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Bullet-point marketing highlights and VIP benefits."
+      },
+      "daily_itinerary": {
+        "type": "array",
+        "items": {
+          "day_number": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string",
+            "description": "Headline of the day with route and meal badges."
+          },
+          "meals": {
+            "type": "object",
+            "properties": {
+              "breakfast": {
+                "type": "boolean"
+              },
+              "lunch": {
+                "type": "boolean"
+              },
+              "dinner": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string",
+                "description": "Human label: 'Ăn 3 Bữa', 'Ăn sáng, trưa, chiều', 'Ăn Tối'."
+              }
+            }
+          },
+          "description": {
+            "type": "object",
+            "properties": {
+              "morning": {
+                "type": "string"
+              },
+              "afternoon": {
+                "type": "string"
+              },
+              "evening": {
+                "type": "string"
+              },
+              "full_text": {
+                "type": "string"
+              }
+            }
+          },
+          "accommodation": {
+            "type": "string",
+            "description": "Hotel name / standard for this night."
+          },
+          "transport": {
+            "type": "string",
+            "description": "Flight / Bus / Speedboat segment."
+          }
+        }
+      }
+    },
+    "policy_terms": {
+      "inclusions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Items covered by the tour package (Dịch vụ bao gồm)."
+      },
+      "exclusions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Items not covered by the tour package (Dịch vụ không bao gồm)."
+      },
+      "child_rules": {
+        "under_2": {
+          "type": "string",
+          "description": "Policy for infants under 2."
+        },
+        "from_2_to_11": {
+          "type": "string",
+          "description": "Policy for children aged 2 to under 12."
+        },
+        "from_12": {
+          "type": "string",
+          "description": "Policy for passengers aged 12 and above."
+        },
+        "documentation": {
+          "type": "string",
+          "description": "Required identification documents (Birth certificate, passport)."
+        }
+      },
+      "cancellation_and_refund": {
+        "deposit_terms": {
+          "deposit_percentage": {
+            "type": "number",
+            "default": 50
+          },
+          "balance_due_days_before": {
+            "type": "integer",
+            "default": 7
+          }
+        },
+        "penalty_brackets": {
+          "type": "array",
+          "items": {
+            "timeframe": {
+              "type": "string"
+            },
+            "penalty_rate": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          }
+        },
+        "notification_channel": {
+          "type": "string",
+          "description": "Cancellation must be confirmed in writing or email; verbal phone cancellation is void."
+        },
+        "minimum_group_clause": {
+          "type": "string",
+          "description": "Right to postpone or refund if group fails to reach minimum 9-15 passengers 4 days prior."
+        },
+        "force_majeure": {
+          "type": "string",
+          "description": "Exemption of compensatory liability for acts of God, terrorism, or flight cancellations."
+        }
+      }
+    },
+    "booking_form_manifest": {
+      "primary_contact": {
+        "d_name": {
+          "type": "string",
+          "required": true,
+          "label": "Họ và tên (*)"
+        },
+        "d_phone": {
+          "type": "string",
+          "required": true,
+          "label": "Di động (*)"
+        },
+        "d_email": {
+          "type": "string",
+          "required": true,
+          "format": "email",
+          "label": "Email (*)"
+        },
+        "d_address": {
+          "type": "string",
+          "required": true,
+          "label": "Địa chỉ (*)"
+        },
+        "d_fax": {
+          "type": "string",
+          "required": false,
+          "label": "Điện thoại bàn"
+        },
+        "comment": {
+          "type": "string",
+          "required": false,
+          "label": "Ghi chú cho hóa đơn"
+        }
+      },
+      "passenger_quantities": {
+        "adult": {
+          "type": "integer",
+          "min": 1,
+          "default": 1,
+          "label": "NGƯỜI LỚN (>= 12 tuổi)"
+        },
+        "children": {
+          "type": "integer",
+          "min": 0,
+          "default": 0,
+          "label": "TRẺ EM (2 - 11 tuổi)"
+        },
+        "infant": {
+          "type": "integer",
+          "min": 0,
+          "default": 0,
+          "label": "EM BÉ (< 2 tuổi)"
+        },
+        "guests": {
+          "type": "integer",
+          "computed": "adult + children + infant",
+          "readonly": true,
+          "label": "SỐ KHÁCH"
+        }
+      },
+      "passenger_item_manifest": {
+        "type": "array",
+        "description": "List of all individual travelers dynamically generated via info_guets endpoint.",
+        "items": {
+          "stt": {
+            "type": "integer",
+            "description": "Ordinal passenger index (1..guests)."
+          },
+          "name": {
+            "type": "string",
+            "required": true,
+            "label": "Họ tên (*)"
+          },
+          "customer_code": {
+            "type": "string",
+            "required": false,
+            "label": "Mã khách hàng"
+          },
+          "gender": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ],
+            "enum_labels": {
+              "1": "Nam",
+              "2": "Nữ"
+            },
+            "required": true,
+            "label": "Giới tính (*)"
+          },
+          "passport_cmnd": {
+            "type": "string",
+            "required": true,
+            "label": "Số Passport / CMND (*)"
+          },
+          "birthday": {
+            "day": {
+              "type": "string",
+              "format": "DD",
+              "required": true
+            },
+            "month": {
+              "type": "string",
+              "format": "MM",
+              "required": true
+            },
+            "year": {
+              "type": "string",
+              "format": "YYYY",
+              "required": true
+            }
+          },
+          "passenger_category": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "enum_labels": {
+              "1": "Người lớn",
+              "2": "Trẻ em",
+              "3": "Em bé"
+            },
+            "required": true
+          },
+          "single_room": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "enum_labels": {
+              "0": "Không",
+              "1": "Có"
+            },
+            "default": 0,
+            "label": "Phòng đơn"
+          },
+          "discount_value": {
+            "type": "number",
+            "default": 0
+          },
+          "room_supplement_charge": {
+            "type": "number",
+            "default": 0
+          }
+        }
+      },
+      "payment_methods": {
+        "type": "string",
+        "enum": [
+          "bank_transfer",
+          "vnpay"
+        ],
+        "labels": {
+          "bank_transfer": "THANH TOÁN BẰNG HÌNH THỨC CHUYỂN KHOẢN",
+          "vnpay": "Thanh toán trực tuyến Vnpay"
+        }
+      },
+      "legal_consent": {
+        "polocy": {
+          "type": "boolean",
+          "required": true,
+          "must_be": true,
+          "label": "Xác nhận đã đọc và đồng ý với Điều khoản và Điều kiện"
+        }
+      }
+    },
+    "operational_rules": {
+      "senior_restriction": "Khách nữ từ 55 tuổi trở lên, khách nam từ 60 tuổi trở lên đi tour một mình và khách mang thai trên 4 tháng (16 tuần) vui lòng đăng ký tour trực tiếp tại văn phòng của Gonatour.",
+      "elderly_restriction": "Không áp dụng đăng ký tour online đối với khách từ 70 tuổi trở lên.",
+      "group_min_threshold": "Đoàn khởi hành cần tối thiểu 9 khách người lớn. Nếu không đủ số lượng, thông báo trước 4 ngày."
+    }
+  },
+  "sample_data": {
+    "tour_domestic_sample": {
+      "header_identity": {
+        "title": "Tour du lịch Nha Trang 4N3D",
+        "tour_code": "GNT4NHV-0112",
+        "slug": "tour-du-lich-nha-trang-GNT4NHV-GNT4NHV-0112",
+        "market_type": 1,
+        "duration": {
+          "days": 4,
+          "nights": 3,
+          "label": "4N3D"
+        },
+        "departure_point": "Hồ Chí Minh",
+        "destination": {
+          "primary": "Nha Trang",
+          "country": "Việt Nam",
+          "route": "Sài Gòn - Nha Trang - Dốc Lết - Đảo Khỉ"
+        },
+        "transportation": [
+          "Xe du lịch"
+        ],
+        "hotel_rating": [
+          "Khách sạn 3*",
+          "Khách sạn 4*"
+        ],
+        "tour_categories": [
+          "Du lịch Khám phá",
+          "Du lịch Tham Quan",
+          "Du lịch lịch sử - văn hóa",
+          "Du lịch sinh thái - nghỉ dưỡng"
+        ],
+        "age_range": {
+          "min_age": 2,
+          "max_age_online": 69
+        }
+      },
+      "pricing_matrix": {
+        "currency": "VND",
+        "base_price": {
+          "adult": 3197000,
+          "child": 0,
+          "infant": 0
+        },
+        "single_room_supplement": 0,
+        "deposit_terms": {
+          "deposit_percentage": 50,
+          "balance_due_days": 7
+        }
+      },
+      "schedule_availability": [
+        {
+          "departure_id": 3871,
+          "departure_date": "01/12/2026",
+          "return_date": "04/12/2026",
+          "day_of_week": "Thứ 3",
+          "duration_days": 4,
+          "max_seats": 20,
+          "remaining_seats": 15,
+          "price": 3197000,
+          "status": "available"
+        },
+        {
+          "departure_id": 3872,
+          "departure_date": "03/12/2026",
+          "return_date": "06/12/2026",
+          "day_of_week": "Thứ 5",
+          "duration_days": 4,
+          "max_seats": 20,
+          "remaining_seats": 15,
+          "price": 3197000,
+          "status": "available"
+        },
+        {
+          "departure_id": 3873,
+          "departure_date": "05/12/2026",
+          "return_date": "08/12/2026",
+          "day_of_week": "Thứ 7",
+          "duration_days": 4,
+          "max_seats": 20,
+          "remaining_seats": 15,
+          "price": 3197000,
+          "status": "available"
+        }
+      ],
+      "highlights": [
+        "Chiêm ngắm cung đường biển Núi Cô Tiên - Hòn Chồng.",
+        "Tắm biển tại Dốc Lết - nơi có bờ cát dài thoai thoải và nước biển trong xanh.",
+        "Khám phá Tháp Bà Ponagar - công trình kiến trúc nổi bật và linh thiêng của người Chăm.",
+        "Tham quan khu du lịch Hòn Lao - Đảo Khỉ."
+      ],
+      "daily_itinerary": [
+        {
+          "day_number": 1,
+          "title": "NGÀY 1 : SÀI GÒN – NHA TRANG ( Ăn sáng, trưa, chiều )",
+          "meals": {
+            "breakfast": true,
+            "lunch": true,
+            "dinner": true,
+            "summary": "Ăn sáng, trưa, chiều"
+          },
+          "description": {
+            "morning": "Xe và HDV đón khách tại Cung Văn Hóa Lao Động TP.HCM (55B Nguyễn Thị Minh Khai, Q.1). Rời Sài Gòn đi Nha Trang.",
+            "afternoon": "Dừng chân dùng cơm trưa tại Cà Ná. Tiếp tục hành trình theo cung đường biển Cam Ranh.",
+            "evening": "Đến Nha Trang nhận phòng khách sạn, dùng bữa tối. Tự do dạo chợ đêm Nha Trang."
+          },
+          "accommodation": "Khách sạn 3* hoặc 4* Nha Trang",
+          "transport": "Xe du lịch đời mới"
+        },
+        {
+          "day_number": 2,
+          "title": "NGÀY 2 : NHA TRANG – CÁC THẮNG CẢNH ( Ăn sáng, trưa, chiều )",
+          "meals": {
+            "breakfast": true,
+            "lunch": true,
+            "dinner": true,
+            "summary": "Ăn sáng, trưa, chiều"
+          },
+          "description": {
+            "morning": "Xe đưa Quý khách ngắm cung đường biển Núi Cô Tiên - Hòn Chồng. Tắm biển Dốc Lết với bãi cát dài thoai thoải.",
+            "afternoon": "Dùng cơm trưa. Viếng Tháp Bà Ponagar linh thiêng.",
+            "evening": "Dùng bữa tối, tự do nghỉ ngơi hoặc dạo biển."
+          },
+          "accommodation": "Khách sạn 3* hoặc 4* Nha Trang",
+          "transport": "Xe du lịch đời mới"
+        },
+        {
+          "day_number": 3,
+          "title": "NGÀY 3 : NHA TRANG – CÁC THẮNG CẢNH ( Ăn sáng, trưa, chiều )",
+          "meals": {
+            "breakfast": true,
+            "lunch": true,
+            "dinner": true,
+            "summary": "Ăn sáng, trưa, chiều"
+          },
+          "description": {
+            "morning": "Đoàn đến bến tàu Đá Chồng, lên tàu tham quan Khu du lịch Hòn Lao - Đảo Khỉ, tắm biển và xem xiếc thú.",
+            "afternoon": "Đoàn dùng cơm trưa tại nhà hàng trên đảo. Buổi chiều tự do tham quan VinWonders hoặc tắm khoáng bùn (tự túc vé).",
+            "evening": "Tự túc dùng bữa tối (theo chương trình) để khám phá ẩm thực tự do tại phố biển."
+          },
+          "accommodation": "Khách sạn 3* hoặc 4* Nha Trang",
+          "transport": "Tàu du lịch + Xe du lịch"
+        },
+        {
+          "day_number": 4,
+          "title": "NGÀY 4 : NHA TRANG – SÀI GÒN ( Ăn sáng, trưa )",
+          "meals": {
+            "breakfast": true,
+            "lunch": true,
+            "dinner": false,
+            "summary": "Ăn sáng, trưa"
+          },
+          "description": {
+            "morning": "Quý khách trả phòng. Chia tay Nha Trang về lại Sài Gòn. Ghé Phan Rang mua đặc sản rượu nho, tỏi.",
+            "afternoon": "Dùng cơm trưa tại Phan Thiết. Tiếp tục lộ trình về TP.HCM.",
+            "evening": "Về đến điểm hẹn ban đầu, kết thúc chương trình du lịch."
+          },
+          "accommodation": "Về nhà",
+          "transport": "Xe du lịch đời mới"
+        }
+      ],
+      "inclusions": [
+        "Vận chuyển: Xe và tàu du lịch đưa đón khách đi theo chương trình trong tour.",
+        "Lưu trú: Khách sạn (1 phòng/2, 3 khách) tiêu chuẩn 2* (Camelia 2, Sài Gòn, Đông Hưng), 3* (Edele, Angella, Gosia) hoặc 4* (Green World, Isean, Poseidon).",
+        "Ăn uống: Ăn uống theo chương trình, được đổi món thường xuyên theo ẩm thực địa phương; nước suối trên đường 1 chai/khách/ngày.",
+        "Hướng dẫn viên: Thuyết minh và phục vụ đoàn suốt tuyến.",
+        "Vé tham quan: Vé vào cửa các thắng cảnh; chi phí tắm biển tại Dốc Lết và Suối Hoa Lan (ghế, dù, tắm nước ngọt).",
+        "Bảo hiểm du lịch: Bảo hiểm du lịch với mức tối đa là 30.000.000 vnđ/trường hợp."
+      ],
+      "exclusions": [
+        "Ăn uống ngoài chương trình và các chi phí vui chơi giải trí cá nhân.",
+        "Vé tắm khoáng, bùn Tháp Bà.",
+        "Vé cáp treo và vui chơi tại VinWonders Nha Trang.",
+        "Ăn chiều ngày thứ 3 trong chương trình.",
+        "Thuế VAT 10% (nếu yêu cầu xuất hóa đơn đỏ)."
+      ],
+      "cancellation_terms": [
+        {
+          "timeframe": "Ngay sau khi đăng ký tour",
+          "penalty_rate": "50% tiền cọc"
+        },
+        {
+          "timeframe": "Trước 7 ngày khởi hành (ngày làm việc)",
+          "penalty_rate": "50% tổng giá tour"
+        },
+        {
+          "timeframe": "Trước 5 ngày khởi hành (ngày làm việc)",
+          "penalty_rate": "75% tổng giá tour"
+        },
+        {
+          "timeframe": "Trong vòng 5 ngày hoặc không xuất hiện",
+          "penalty_rate": "100% tổng giá trị chương trình"
+        }
+      ]
+    },
+    "tour_international_sample": {
+      "header_identity": {
+        "title": "Tour Thái Lan 5N4D: Bangkok - Pattaya",
+        "tour_code": "TL5NTAL-3009",
+        "slug": "tour-thai-lan-1774248263-TL5NTAL-3009",
+        "market_type": 2,
+        "duration": {
+          "days": 5,
+          "nights": 4,
+          "label": "5N4D"
+        },
+        "departure_point": "TP.HCM (Sân bay Tân Sơn Nhất)",
+        "destination": {
+          "primary": "Bangkok & Pattaya",
+          "country": "Thái Lan",
+          "route": "TP.HCM - Bangkok - Pattaya - Đảo Coral - Bangkok - TP.HCM"
+        },
+        "transportation": [
+          "Máy bay khứ hồi (SGN-BKK-SGN)",
+          "Xe du lịch 45 chỗ đời mới",
+          "Cano cao tốc"
+        ],
+        "hotel_rating": [
+          "Khách sạn 3*",
+          "Khách sạn 4*"
+        ],
+        "tour_categories": [
+          "Du lịch Khám phá",
+          "Du lịch Tham Quan",
+          "Du lịch văn hóa tâm linh",
+          "Du lịch biển đảo"
+        ],
+        "age_range": {
+          "min_age": 2,
+          "max_age_online": 69
+        }
+      },
+      "pricing_matrix": {
+        "currency": "VND",
+        "base_price": {
+          "adult": 7790000,
+          "child": 0,
+          "infant": 0
+        },
+        "fuel_airline_insurance_surcharge": 0,
+        "airport_tax": 0,
+        "visa_surcharge": 0,
+        "single_room_supplement": 2400000,
+        "tipping_policy": {
+          "amount_vnd": 700000,
+          "amount_usd": 25,
+          "per_unit": "tour",
+          "description": "Tiền Tip hướng dẫn viên và tài xế mức đề nghị: 700.000 VNĐ/khách/tour (~25 USD/khách/tour)."
+        },
+        "nationality_surcharges": [
+          {
+            "nationality": "Hoa Kỳ (USA)",
+            "amount_vnd": 2580000
+          },
+          {
+            "nationality": "Canada",
+            "amount_vnd": 1200000
+          },
+          {
+            "nationality": "Việt Nam (Visa rời)",
+            "amount_vnd": 850000
+          },
+          {
+            "nationality": "Việt kiều / Ngoại kiều (Visa tái nhập VN)",
+            "amount_vnd": 945000
+          }
+        ],
+        "deposit_terms": {
+          "deposit_percentage": 50,
+          "balance_due_days": 7
+        }
+      },
+      "schedule_availability": [
+        {
+          "departure_id": 3629,
+          "departure_date": "30/09/2026",
+          "return_date": "04/10/2026",
+          "day_of_week": "Thứ 4",
+          "duration_days": 5,
+          "max_seats": 25,
+          "remaining_seats": 15,
+          "price": 7790000,
+          "flight_schedule": {
+            "outbound": "VN605 SGN 11:35 - BKK 13:10",
+            "inbound": "VN604 BKK 14:20 - SGN 16:05"
+          },
+          "status": "available"
+        }
+      ],
+      "highlights": [
+        "Thưởng thức 01 phần cafe vàng và bánh ngọt tráng miệng phủ vàng đặc biệt.",
+        "Thưởng thức đại tiệc Buffet trưa tại tòa nhà 86 tầng cao nhất Thái Lan Baiyoke Sky.",
+        "Tặng vé xem chương trình biểu diễn Alcazar Show hoành tráng của các nghệ sĩ chuyển giới.",
+        "Tặng vé tham quan Viện bảo tàng Lighting Art Museum & Balloon Garden.",
+        "Dạo thuyền trên dòng sông Chaophraya huyền thoại, viếng Chùa Phật Vàng Wat Traimit và Chùa Thuyền."
+      ],
+      "daily_itinerary": [
+        {
+          "day_number": 1,
+          "title": "NGÀY 1: TP.HCM – BANGKOK (Ăn Tối)",
+          "meals": {
+            "breakfast": false,
+            "lunch": false,
+            "dinner": true,
+            "summary": "Ăn Tối"
+          },
+          "description": {
+            "morning": "Trưởng đoàn đón khách tại ga quốc tế sân bay Tân Sơn Nhất làm thủ tục đáp chuyến bay đi Bangkok.",
+            "afternoon": "Đến Bangkok, xe và HDV địa phương đón đoàn đưa đi tham quan.",
+            "evening": "Dùng bữa tối tại nhà hàng, về nhận phòng khách sạn tại Bangkok nghỉ ngơi."
+          },
+          "accommodation": "Khách sạn 3* hoặc 4* Bangkok (The Palazzo / Picnic Bangkok)",
+          "transport": "Máy bay + Xe du lịch"
+        },
+        {
+          "day_number": 2,
+          "title": "NGÀY 2: BANGKOK – LIGHTING ART MUSEUM – PATTAYA – WAT PHRA YAI (Ăn 3 Bữa)",
+          "meals": {
+            "breakfast": true,
+            "lunch": true,
+            "dinner": true,
+            "summary": "Ăn 3 Bữa"
+          },
+          "description": {
+            "morning": "Buffet sáng tại khách sạn, trả phòng. Khởi hành tham quan Bảo tàng nghệ thuật ánh sáng Lighting Art Museum & Balloon Garden.",
+            "afternoon": "Khởi hành đi thành phố biển Pattaya, viếng Chùa Đại Phật Wat Phra Yai với tượng Phật cao 18m linh thiêng.",
+            "evening": "Dùng bữa tối tại Pattaya. Tự do khám phá phố đi bộ Walking Street náo nhiệt."
+          },
+          "accommodation": "Khách sạn 3* hoặc 4* Pattaya (Crystal Palace / Marble Garden)",
+          "transport": "Xe du lịch 45 chỗ"
+        },
+        {
+          "day_number": 3,
+          "title": "NGÀY 3: PATTAYA – ĐẢO CORAL – TRÂN BẢO PHẬT SƠN – CAFE PHỦ VÀNG – ALCAZAR SHOW (Ăn 3 Bữa)",
+          "meals": {
+            "breakfast": true,
+            "lunch": true,
+            "dinner": true,
+            "summary": "Ăn 3 Bữa"
+          },
+          "description": {
+            "morning": "Đi cano cao tốc ra Đảo San Hô (Coral Island), tự do tắm biển và tham gia trò chơi dù lượn, lặn biển ngắm san hô (tự túc chi phí).",
+            "afternoon": "Trở về đất liền, tham quan Trân Bảo Phật Sơn (Khao Chee Chan), Làng Nong Nooch, thưởng thức cafe phủ vàng và bánh ngọt dát vàng.",
+            "evening": "Thưởng thức chương trình biểu diễn tạp kỹ quốc tế Alcazar Cabaret Show. Dùng bữa tối BBQ hải sản."
+          },
+          "accommodation": "Khách sạn 3* hoặc 4* Pattaya",
+          "transport": "Cano cao tốc + Xe du lịch"
+        },
+        {
+          "day_number": 4,
+          "title": "NGÀY 4: PATTAYA – TRUNG TÂM GIẤC NGỦ HOÀNG GIA – BAIYOKE SKY – PHẬT 4 MẶT – BANGKOK (Ăn Sáng, Trưa)",
+          "meals": {
+            "breakfast": true,
+            "lunch": true,
+            "dinner": false,
+            "summary": "Ăn Sáng, Ăn Trưa"
+          },
+          "description": {
+            "morning": "Ăn sáng, trả phòng khách sạn. Khởi hành về Bangkok, tham quan Trung tâm nghiên cứu giấc ngủ Hoàng Gia và trung tâm mật ong / cao hổ.",
+            "afternoon": "Dùng đại tiệc Buffet trưa quốc tế tại Baiyoke Sky 86 tầng. Viếng Đền Erawan (Tượng Phật 4 Mặt linh thiêng), tự do mua sắm tại Central World, Big C.",
+            "evening": "Quý khách tự túc thưởng thức ẩm thực đêm tại chợ đêm Pratunam hoặc Siam Paragon."
+          },
+          "accommodation": "Khách sạn 3* hoặc 4* Bangkok",
+          "transport": "Xe du lịch 45 chỗ"
+        },
+        {
+          "day_number": 5,
+          "title": "NGÀY 5: BANGKOK – DẠO THUYỀN SÔNG CHAOPHRAYA – WAT TRAIMIT – TP.HCM (Ăn Sáng, Trưa)",
+          "meals": {
+            "breakfast": true,
+            "lunch": true,
+            "dinner": false,
+            "summary": "Ăn Sáng, Ăn Trưa"
+          },
+          "description": {
+            "morning": "Dạo thuyền trên dòng sông Chaophraya ngắm hiện tượng cá nổi. Viếng Wat Traimit (Chùa Phật Vàng lớn nhất thế giới nặng 5.5 tấn), viếng Chùa Thuyền Wat Yannawa.",
+            "afternoon": "Dùng bữa trưa, sau đó xe đưa đoàn ra sân bay Bangkok làm thủ tục đáp chuyến bay về TP.HCM.",
+            "evening": "Về đến sân bay Tân Sơn Nhất, hoàn tất thủ tục nhập cảnh, chia tay đoàn."
+          },
+          "accommodation": "Về nhà",
+          "transport": "Xe du lịch + Máy bay khứ hồi"
+        }
+      ],
+      "inclusions": [
+        "Phương tiện: Vé máy bay khứ hồi SGN - BKK - SGN (gồm hành lý ký gửi 20kg và xách tay 7kg); Thuế sân bay 2 nước, phí an ninh và phụ thu nhiên liệu; Xe máy lạnh du lịch 45 chỗ phục vụ suốt tuyến.",
+        "Ăn uống: Bữa ăn theo chương trình gồm đại tiệc buffet xoay 86 tầng Baiyoke Sky, lẩu Suki, ẩm thực Thái; nước suối 1 chai/ngày.",
+        "Lưu trú: Khách sạn 3* và 4* tiêu chuẩn Thái (2 khách/phòng, lẻ nam/nữ ghép phòng 3).",
+        "Tham quan: Vé vào cổng các điểm tham quan theo chương trình (Lighting Art Museum, Alcazar Show, Đảo San Hô...).",
+        "Bảo hiểm: Bảo hiểm du lịch quốc tế bồi thường tối đa 220.000.000 VND.",
+        "Quà tặng: Nón du lịch, bao da hộ chiếu cao cấp.",
+        "Hướng dẫn viên: Trưởng đoàn từ Việt Nam và hướng dẫn viên địa phương nói tiếng Việt phục vụ suốt tuyến."
+      ],
+      "exclusions": [
+        "Tiền Tips cho hướng dẫn viên và tài xế bắt buộc: 700.000 VNĐ/khách/tour (~25 USD/khách/tour).",
+        "Phụ thu phòng đơn cho khách muốn ở riêng 1 phòng: 2.400.000 VNĐ/khách/tour.",
+        "Chi phí cá nhân: giặt ủi, điện thoại, thức uống trong minibar.",
+        "Visa tái nhập Việt Nam đối với người mang quốc tịch nước ngoài: 945.000 VNĐ/khách.",
+        "Phụ thu đối với khách mang hộ chiếu nước ngoài (Mỹ: 2.580.000 VNĐ, Canada: 1.200.000 VNĐ, Việt Nam visa rời: 850.000 VNĐ).",
+        "Thuế VAT."
+      ],
+      "cancellation_terms": [
+        {
+          "timeframe": "Ngay sau khi đăng ký cọc tour",
+          "penalty_rate": "50% số tiền cọc"
+        },
+        {
+          "timeframe": "Trước 20 ngày khởi hành (ngày làm việc)",
+          "penalty_rate": "50% tổng giá trị tour"
+        },
+        {
+          "timeframe": "Trước 15 ngày khởi hành (ngày làm việc)",
+          "penalty_rate": "75% tổng giá trị tour"
+        },
+        {
+          "timeframe": "Dưới 15 ngày khởi hành (ngày làm việc) hoặc vắng mặt",
+          "penalty_rate": "100% tổng giá trị tour"
+        }
+      ]
+    },
+    "sample_booking_submission": {
+      "order_metadata": {
+        "tour_id": 3871,
+        "tour_code": "GNT4NHV-0112",
+        "departure_date": "01/12/2026",
+        "market_type": 1,
+        "booking_source": "web_checkout"
+      },
+      "contact_information": {
+        "d_name": "Nguyễn Văn An",
+        "d_phone": "0901234567",
+        "d_email": "nguyenvanan@example.com",
+        "d_address": "123 Lê Lợi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
+        "d_fax": "",
+        "comment": "Gia đình có 1 bé nhỏ và muốn bố trí phòng tầng cao không hút thuốc."
+      },
+      "passenger_quantities": {
+        "adult": 2,
+        "children": 1,
+        "infant": 0,
+        "guests": 3
+      },
+      "passenger_manifest": [
+        {
+          "stt": 1,
+          "name": "Nguyễn Văn An",
+          "customer_code": "KH10293",
+          "gender": 1,
+          "passport_cmnd": "079085012345",
+          "birthday": {
+            "day": "15",
+            "month": "08",
+            "year": "1985"
+          },
+          "passenger_category": 1,
+          "single_room": 0,
+          "discount_value": 0,
+          "unit_price": 3197000
+        },
+        {
+          "stt": 2,
+          "name": "Trần Thị Mai",
+          "customer_code": "",
+          "gender": 2,
+          "passport_cmnd": "079188054321",
+          "birthday": {
+            "day": "22",
+            "month": "11",
+            "year": "1988"
+          },
+          "passenger_category": 1,
+          "single_room": 0,
+          "discount_value": 0,
+          "unit_price": 3197000
+        },
+        {
+          "stt": 3,
+          "name": "Nguyễn Gia Hưng",
+          "customer_code": "",
+          "gender": 1,
+          "passport_cmnd": "B9876543",
+          "birthday": {
+            "day": "10",
+            "month": "06",
+            "year": "2018"
+          },
+          "passenger_category": 2,
+          "single_room": 0,
+          "discount_value": 0,
+          "unit_price": 0
+        }
+      ],
+      "financial_summary": {
+        "currency": "VND",
+        "adult_subtotal": 6394000,
+        "child_subtotal": 0,
+        "infant_subtotal": 0,
+        "single_room_supplement_total": 0,
+        "discounts_total": 0,
+        "grand_total": 6394000,
+        "deposit_due_now": 3197000,
+        "balance_due_date": "24/11/2026"
+      },
+      "payment": {
+        "method": "bank_transfer",
+        "status": "pending_payment",
+        "policy_accepted": true
+      }
+    }
+  }
+}
