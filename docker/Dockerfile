@@ -56,7 +56,7 @@ RUN echo "[www]" > /usr/local/etc/php-fpm.d/zz-docker-lowram.conf \
     && echo "pm.max_requests = 500" >> /usr/local/etc/php-fpm.d/zz-docker-lowram.conf
 
 # Configure PHP runtime & Opcache settings
-RUN echo "memory_limit = 128M" > /usr/local/etc/php/conf.d/zz-lowram.ini \
+RUN echo "memory_limit = 256M" > /usr/local/etc/php/conf.d/zz-lowram.ini \
     && echo "upload_max_filesize = 32M" >> /usr/local/etc/php/conf.d/zz-lowram.ini \
     && echo "post_max_size = 32M" >> /usr/local/etc/php/conf.d/zz-lowram.ini \
     && echo "max_execution_time = 60" >> /usr/local/etc/php/conf.d/zz-lowram.ini \

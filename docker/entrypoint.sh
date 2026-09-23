@@ -12,8 +12,8 @@ chmod 750 /var/www/html/web/app/database
 # Start PHP-FPM as daemon on port 9000
 php-fpm -D
 
-# Wait loop: kiểm tra PHP-FPM socket/port sẵn sàng
-until [ -S /var/run/php-fpm.sock ] || timeout 5 sh -c 'while ! echo > /dev/tcp/127.0.0.1/9000; do sleep 0.1; done' 2>/dev/null; do
+# Wait loop: check PHP-FPM socket/port ready
+until [ -S /var/run/php-fpm.sock ] || nc -z 127.0.0.1 9000 2>/dev/null; do
   sleep 0.1
 done
 

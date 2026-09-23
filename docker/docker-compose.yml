@@ -57,17 +57,12 @@ services:
     # mem_limit: plain Docker Compose (Coolify, docker compose up). Effective immediately.
     # deploy.resources.limits: Docker Swarm / izDeploy mode only.
     # Both are set to the same value — change both when switching tiers.
-    mem_limit: 192M        # TIER 1: 192M | TIER 2: 384M | TIER 3: 768M
+    mem_limit: 384M        # TIER 1: 192M | TIER 2: 384M | TIER 3: 768M
     cpus: 1.0
     deploy:
       resources:
         limits:
-          # TIER 1 (512MB VPS): 192M — default
-          memory: 192M
-          # TIER 2 (1GB VPS):  384M — uncomment and comment out line above
-          # memory: 384M
-          # TIER 3 (2GB VPS):  768M — uncomment and comment out line above
-          # memory: 768M
+          memory: 384M
           cpus: '1.0'
 
 # ==============================================================================
@@ -75,7 +70,7 @@ services:
 # For Tier 2/3: remove the mariadb-lowram.cnf volume mount below.
 # ==============================================================================
   mariadb:
-    image: mariadb:10.11-alpine
+    image: mariadb:10.11
     container_name: iz-wp-lite-db
     restart: unless-stopped
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
@@ -88,17 +83,12 @@ services:
       - db_data:/var/lib/mysql
       # TIER 1: mariadb-lowram.cnf caps RAM at ~60MB. Remove for Tier 2/3.
       - ./mariadb-lowram.cnf:/etc/mysql/conf.d/lowram.cnf:ro
-    mem_limit: 96M         # TIER 1: 96M | TIER 2: 384M | TIER 3: 768M
+    mem_limit: 256M        # TIER 1: 96M | TIER 2: 384M | TIER 3: 768M
     cpus: 0.5
     deploy:
       resources:
         limits:
-          # TIER 1 (512MB VPS): 96M — default
-          memory: 96M
-          # TIER 2 (1GB VPS):  384M — uncomment and comment out line above
-          # memory: 384M
-          # TIER 3 (2GB VPS):  768M — uncomment and comment out line above
-          # memory: 768M
+          memory: 256M
           cpus: '0.5'
 
 # ==============================================================================

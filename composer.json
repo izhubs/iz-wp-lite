@@ -28,10 +28,10 @@
       "type": "package",
       "package": {
         "name": "wpackagist-plugin/sqlite-database-integration",
-        "version": "2.1.16",
+        "version": "3.0.2",
         "type": "wordpress-plugin",
         "dist": {
-          "url": "https://downloads.wordpress.org/plugin/sqlite-database-integration.2.1.16.zip",
+          "url": "https://downloads.wordpress.org/plugin/sqlite-database-integration.3.0.2.zip",
           "type": "zip"
         }
       }
@@ -44,12 +44,12 @@
   "require": {
     "php": "^8.1 || ^8.2 || ^8.3",
     "composer/installers": "^2.2",
-    "vlucas/phpdotenv": "^5.5",
     "oscarotero/env": "^2.1",
-    "roots/wordpress": "^6.5",
+    "roots/wordpress": "^7.0",
     "roots/wp-config": "^1.0",
     "roots/wp-password-bcrypt": "^1.1",
-    "wpackagist-plugin/sqlite-database-integration": "^1.8 || ^2.0"
+    "vlucas/phpdotenv": "^5.5",
+    "wpackagist-plugin/sqlite-database-integration": "^2.0 || ^3.0"
   },
   "suggest": {
     "humanmade/s3-uploads": "Offload media to Cloudflare R2 / S3 (Run: composer require humanmade/s3-uploads)",

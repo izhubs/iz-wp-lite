@@ -68,14 +68,19 @@ DB_NAME=your_existing_db_name
 DB_USER=your_db_user
 DB_PASSWORD=your_db_password
 DB_HOST=mariadb:3306
+DB_PREFIX=wp_
 ```
 
 Copy your WP salts from the old `wp-config.php` into `.env` under the AUTH_KEY / NONCE_KEY blocks.
 
+> [!IMPORTANT]
+> **Check Table Prefix:** If your existing site uses a custom prefix (e.g. `$table_prefix = 'wp_custom_';` in your old `wp-config.php`), ensure you set `DB_PREFIX=wp_custom_` in `.env`. If this does not match, WordPress will display the fresh installation screen instead of loading your migrated data.
+
 ---
 
-## Step 4: Reinstall plugins via Composer
+## Step 4: Reinstall plugins (Composer or Direct Upload)
 
+### Method A: Public plugins via Composer (Recommended)
 Map each old plugin slug to its wpackagist package:
 
 ```bash
@@ -87,6 +92,19 @@ composer require wpackagist-plugin/wordfence
 ```
 
 Search for any plugin at: `https://wpackagist.org/?s=<plugin-slug>`
+
+### Method B: Premium or private plugins (Direct Upload)
+For paid plugins (ACF Pro, Elementor Pro, CodeCanyon ZIPs) not available on wpackagist, simply copy or upload them directly into `web/app/plugins/` (before or after migration):
+
+```bash
+# Copy unpacked plugin into the container
+docker cp /path/to/my-premium-plugin iz-wp-lite-app:/var/www/html/web/app/plugins/
+
+# Fix permissions
+docker exec iz-wp-lite-app chown -R www-data:www-data /var/www/html/web/app/plugins/
+```
+
+*(Note: `web/app/plugins/*` is already ignored by Git in `.gitignore`, so uploading plugins directly will not dirty your repository).*
 
 ---
 
@@ -182,11 +200,12 @@ docker exec -it iz-wp-lite-app wp --allow-root search-replace \
 | Issue | Cause | Fix |
 |---|---|---|
 | White screen after import | Old plugin still referenced in DB, plugin not reinstalled | `docker exec ... wp --allow-root plugin deactivate <slug>` |
+| WordPress shows install screen | `DB_PREFIX` in `.env` does not match tables in database | Check table prefix in DB dump and update `DB_PREFIX` in `.env` |
 | Media images 404 | Uploads not copied or wrong permissions | Re-run Step 8 |
 | Admin redirect loop | `WP_HOME` / `WP_SITEURL` mismatch in DB vs `.env` | Run search-replace (Step 7) |
 | "Error establishing database connection" | DB credentials wrong or MariaDB not ready | `docker compose logs mariadb` |
 | Serialized data corrupted | Manual SQL search-replace was used | Restore from dump, use WP-CLI search-replace |
-| Plugin not found on wpackagist | Premium / CodeCanyon plugin | Install ZIP manually, commit to repo, add to `.gitignore` exclusion |
+| Plugin not found on wpackagist | Premium / CodeCanyon plugin | Copy ZIP / folder directly to `web/app/plugins/` (Method B) |
 
 ---
 
