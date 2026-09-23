@@ -1,0 +1,47 @@
+/*
+Theme Name: iZ Tour Theme
+Theme URI: https://izweb.vn/themes/iz-tour-theme
+Author: iZdigi Engineering
+Author URI: https://izweb.vn
+Description: High-performance, pixel-perfect WordPress travel & tour booking theme inspired by gonatour.vn, fully integrated with iz-tour-engine and automated VietQR checkout.
+Version: 1.0.0
+Requires at least: 6.0
+Tested up to: 6.6
+Requires PHP: 8.1
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: iz-tour-theme
+Tags: travel, tour-booking, ecommerce, responsive-layout, vietqr
+*/
+
+:root {
+    --iz-brand-red: #dc2626;
+    --iz-brand-red-hover: #b91c1c;
+    --iz-brand-red-light: #fef2f2;
+    --iz-deep-navy: #1e3a8a;
+    --iz-deep-navy-dark: #0f172a;
+    --iz-deep-navy-light: #eff6ff;
+    --iz-amber-gold: #f59e0b;
+    --iz-amber-gold-hover: #d97706;
+    --iz-amber-light: #fffbeb;
+    --iz-neutral-light: #f8fafc;
+    --iz-neutral-gray: #f1f5f9;
+    --iz-border-color: #e2e8f0;
+    --iz-border-dark: #cbd5e1;
+    --iz-text-dark: #0f172a;
+    --iz-text-body: #334155;
+    --iz-text-muted: #64748b;
+    --iz-surface-white: #ffffff;
+    --iz-success: #16a34a;
+    --iz-success-light: #f0fdf4;
+    --iz-font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --iz-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --iz-radius-sm: 4px;
+    --iz-radius-md: 8px;
+    --iz-radius-lg: 12px;
+    --iz-radius-full: 9999px;
+    --iz-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --iz-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    --iz-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --iz-container-width: 1240px;
+}
