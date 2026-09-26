@@ -195,6 +195,16 @@ docker exec -it iz-wp-lite-app wp --allow-root search-replace \
 
 ---
 
+## Coolify / Docker Deployment Caveats
+
+When migrating to PaaS platforms like **Coolify**, keep the following architectural constraints in mind:
+
+1. **Do not use All-in-One WP Migration:** Standard migration plugins expect the default `wp-content` path structure. Since iz-wp-lite uses the Bedrock pattern (`web/app`), these plugins will extract data to the wrong paths, break the site, and defeat the Composer-driven architecture. Always migrate using the manual Git + SQL + SFTP method.
+2. **Uploads are not pushed to Git:** By design, `.gitignore` excludes `web/app/uploads/`. When deploying via Coolify, your Git repository will not carry your media files. You must manually copy the `uploads` folder to the Docker Named Volume (e.g., `/var/lib/docker/volumes/iz_wp_uploads/_data/`) via SFTP.
+3. **Database provisioning:** When using `Docker Compose` as the Build Pack in Coolify, Coolify will parse the `docker-compose.yml` and spin up the MariaDB container automatically. You do not need to create a separate standalone Database Resource in the Coolify UI.
+
+---
+
 ## Common migration issues
 
 | Issue | Cause | Fix |
