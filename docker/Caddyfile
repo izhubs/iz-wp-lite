@@ -21,6 +21,12 @@
 	}
 	respond @xmlrpc 403
 
+	# Security: Block legacy WordPress admin and login paths with 404 to prevent scanner bots from discovering isolated Bedrock core
+	@legacy_admin {
+		path /wp-admin /wp-admin/* /wp-login.php
+	}
+	respond @legacy_admin 404
+
 	# Rate limiting for wp-login.php
 	# DECISION: rate_limit directive requires caddy-ratelimit third-party module.
 	# Standard Caddy binary does NOT include it — using it here causes startup failure.
@@ -47,13 +53,13 @@
 	file_server
 
 	# Tier 2: Static Page Cache (Check for pre-rendered HTML cache before passing to PHP)
-	# Compatible with Cache Enabler / WP Super Cache file structures
+	# Compatible with WP Rocket / Cache Enabler / WP Super Cache file structures
 	@cached_page {
 		not method POST
 		not path_regexp ^/(wp-admin|wp-login\.php)
 		not header Cookie "*wordpress_logged_in*"
 		file {
-			try_files /app/cache/page_cache/{path}/index.html /app/cache/cache-enabler/{host}{path}/index.html
+			try_files /app/cache/wp-rocket/{host}{path}/index-https.html /app/cache/wp-rocket/{host}{path}/index.html /app/cache/page_cache/{path}/index.html /app/cache/cache-enabler/{host}{path}/index.html
 		}
 	}
 	rewrite @cached_page {http.matchers.file.relative}
@@ -61,7 +67,8 @@
 	# Forward PHP requests to PHP-FPM on port 9000
 	php_fastcgi 127.0.0.1:9000 {
 		index index.php
-		env SERVER_PORT 8080
+		env HTTPS on
+		env SERVER_PORT 443
 	}
 
 	# Cache headers for static assets

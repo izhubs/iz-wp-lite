@@ -72,14 +72,14 @@ RUN echo "memory_limit = 256M" > /usr/local/etc/php/conf.d/zz-lowram.ini \
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 
 # Copy composer vendor dependencies from builder stage
-COPY --from=builder /app/vendor /var/www/html/vendor
+COPY --chown=www-data:www-data --from=builder /app/vendor /var/www/html/vendor
 
 # Copy application source files and WordPress core from builder
-COPY config /var/www/html/config
-COPY web /var/www/html/web
-COPY --from=builder /app/web /var/www/html/web
-COPY composer.json /var/www/html/composer.json
-COPY .env.example /var/www/html/.env.example
+COPY --chown=www-data:www-data config /var/www/html/config
+COPY --chown=www-data:www-data web /var/www/html/web
+COPY --chown=www-data:www-data --from=builder /app/web /var/www/html/web
+COPY --chown=www-data:www-data composer.json /var/www/html/composer.json
+COPY --chown=www-data:www-data .env.example /var/www/html/.env.example
 
 # Copy entrypoint script
 COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
@@ -88,7 +88,6 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 # Create persistent storage directories and assign permissions to www-data
 RUN mkdir -p /var/www/html/web/app/database \
              /var/www/html/web/app/uploads \
-    && chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html \
     && chmod 750 /var/www/html/web/app/database
 
