@@ -142,7 +142,7 @@ iz-wp-lite/
 │   ├── app/
 │   │   ├── mu-plugins/   # Auto-loaded: DB router, SQLite loader, security hardening
 │   │   ├── plugins/      # Composer-managed plugins (gitignored)
-│   │   ├── themes/       # Themes (gitignored, managed via Composer)
+│   │   ├── themes/       # Themes (includes Frost FSE starter kit by default)
 │   │   └── uploads/      # Media (Docker volume, gitignored)
 │   └── wp/               # WordPress core (gitignored, installed by Composer)
 ├── config/

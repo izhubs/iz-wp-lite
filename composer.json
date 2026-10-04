@@ -61,7 +61,8 @@
     "wpackagist-plugin/redis-cache": "Redis object cache for Tier 3 (2GB VPS) — requires Redis service in docker-compose.yml (Run: composer require wpackagist-plugin/redis-cache)",
     "wpackagist-plugin/contact-form-7": "Lightweight contact forms — pair with CF7 Honeypot to block spam (Run: composer require wpackagist-plugin/contact-form-7)",
     "wpackagist-plugin/cf7-honeypot": "Honeypot anti-spam for Contact Form 7 — zero UX friction, no CAPTCHA (Run: composer require wpackagist-plugin/cf7-honeypot)",
-    "wpackagist-plugin/limit-login-attempts-reloaded": "Block brute-force login attacks by IP lockout (Run: composer require wpackagist-plugin/limit-login-attempts-reloaded)"
+    "wpackagist-plugin/limit-login-attempts-reloaded": "Block brute-force login attacks by IP lockout (Run: composer require wpackagist-plugin/limit-login-attempts-reloaded)",
+    "wpackagist-theme/frost": "Modern Full Site Editing (FSE) block theme starter kit — bundled by default in web/app/themes/frost"
   },
   "require-dev": {
     "squizlabs/php_codesniffer": "^3.9"

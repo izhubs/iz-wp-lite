@@ -46,4 +46,23 @@ function iz_wp_lite_auto_activate_default_plugins(): void
         }
     }
 }
+/**
+ * Automatically ensure a valid theme (Frost) is active if no theme or deprecated theme is set.
+ *
+ * @return void
+ */
+function iz_wp_lite_auto_activate_default_theme(): void
+{
+    if (!is_admin() && (!defined('WP_CLI') || !WP_CLI)) {
+        return;
+    }
+
+    $current_theme = get_option('stylesheet');
+    if ($current_theme === 'iz-tour-theme' || empty($current_theme)) {
+        if (wp_get_theme('frost')->exists()) {
+            switch_theme('frost');
+        }
+    }
+}
+add_action('admin_init', 'iz_wp_lite_auto_activate_default_theme', 10);
 add_action('admin_init', 'iz_wp_lite_auto_activate_default_plugins', 20);

@@ -122,6 +122,7 @@ define('AUTOMATIC_UPDATER_DISABLED', true);
 define('DISABLE_WP_CRON', env('DISABLE_WP_CRON') ?: false);
 define('DISALLOW_FILE_EDIT', true);
 define('DISALLOW_FILE_MODS', env('DISALLOW_FILE_MODS') ?: (WP_ENV !== 'development'));
+define('WP_DEFAULT_THEME', env('WP_DEFAULT_THEME') ?: 'frost');
 
 /**
  * Cloudflare R2 / S3 Uploads (Stage 2 Ready)
